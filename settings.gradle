@@ -1,0 +1,8 @@
+rootProject.name = 'BidFlow'
+
+include 'service-registry'
+include 'service-gateway'
+include 'service-auth'
+include 'service-bidding'
+include 'service-notify'
+include 'common'
