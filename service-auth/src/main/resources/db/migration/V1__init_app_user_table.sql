@@ -1,5 +1,6 @@
 -- Migration: V1__init_app_user_table.sql
 -- Description: Initial schema for Auth & User Service
+
 CREATE TABLE app_user (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(65) NOT NULL,

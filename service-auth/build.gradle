@@ -25,6 +25,10 @@ dependencies {
     implementation libs.lombok
     annotationProcessor libs.lombok
 
+    // ========== MapStruct ==========
+    implementation libs.mapstruct
+    annotationProcessor libs.mapstruct.processor
+
     // ========== JWT ==========
     runtimeOnly libs.jjwt.impl
     implementation libs.jjwt.api
