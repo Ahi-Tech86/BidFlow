@@ -19,4 +19,7 @@ public record LoginRequest(
         @Schema(description = "Raw user's password", example = "simple_password")
         String password
 ) {
+    public LoginRequest withEmail(String email) {
+        return new LoginRequest(email, password);
+    }
 }

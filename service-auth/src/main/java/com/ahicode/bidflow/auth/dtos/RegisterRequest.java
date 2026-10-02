@@ -27,4 +27,7 @@ public record RegisterRequest(
         @Schema(description = "Raw user's password", example = "simple_password")
         String password
 ) {
+    public RegisterRequest withEmail(String email) {
+        return new RegisterRequest(email, firstName, lastName, password);
+    }
 }

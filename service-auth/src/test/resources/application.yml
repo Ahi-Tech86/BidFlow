@@ -1,0 +1,22 @@
+server:
+  port: 0
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+eureka:
+  client:
+    enabled: false
+
+application:
+  security:
+    jwt:
+      refresh-token:
+        secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0cy1vbmx5LWRvLW5vdC11c2UtaW4tcHJvZHVjdGlvbg==
+        expiration: 7d
+      access-token:
+        secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0cy1vbmx5LWRvLW5vdC11c2UtaW4tcHJvZHVjdGlvbg==
+        expiration: 15m
