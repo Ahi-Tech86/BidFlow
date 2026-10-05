@@ -6,6 +6,7 @@ import com.ahicode.bidflow.auth.dtos.RegisterRequest;
 import com.ahicode.bidflow.auth.dtos.UserProfile;
 import com.ahicode.bidflow.auth.entities.RefreshTokenEntity;
 import com.ahicode.bidflow.auth.entities.UserEntity;
+import com.ahicode.bidflow.auth.enums.TokenType;
 import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.exceptions.EmailAlreadyExistsException;
 import com.ahicode.bidflow.auth.exceptions.InvalidCredentialException;
@@ -13,6 +14,7 @@ import com.ahicode.bidflow.auth.exceptions.UserBlockedException;
 import com.ahicode.bidflow.auth.mappers.UserMapper;
 import com.ahicode.bidflow.auth.repositories.RefreshTokenRepository;
 import com.ahicode.bidflow.auth.repositories.UserRepository;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,14 +47,15 @@ public class AuthServiceImpl implements AuthService {
 
         String refreshToken = jwtService.generateRefreshToken(user);
         String accessToken = jwtService.generateAccessToken(user);
+        String refreshTokenJti = jwtService.extractClaims(refreshToken, TokenType.REFRESH_TOKEN, Claims::getId);
 
-        saveRefreshToken(user, refreshToken);
+        saveRefreshToken(user, refreshToken, refreshTokenJti);
 
         return createAuthResponse(refreshToken, accessToken, user);
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         UserEntity user = repository.findByEmail(request.email())
                 .orElseThrow(() -> new InvalidCredentialException("Wrong email or password"));
@@ -67,8 +70,9 @@ public class AuthServiceImpl implements AuthService {
 
         String refreshToken = jwtService.generateRefreshToken(user);
         String accessToken = jwtService.generateAccessToken(user);
+        String refreshTokenJti = jwtService.extractClaims(refreshToken, TokenType.REFRESH_TOKEN, Claims::getId);
 
-        saveRefreshToken(user, refreshToken);
+        saveRefreshToken(user, refreshToken, refreshTokenJti);
 
         AuthResponse response = createAuthResponse(refreshToken, accessToken, user);
 
@@ -105,9 +109,10 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void saveRefreshToken(UserEntity user, String refreshToken) {
+    private void saveRefreshToken(UserEntity user, String refreshToken, String jti) {
         RefreshTokenEntity token = RefreshTokenEntity.builder()
                 .userId(user.getId())
+                .jti(jti)
                 .token(refreshToken)
                 .expiresAt(ZonedDateTime.now().plus(jwtService.getRefreshTokenTtl()))
                 .revoked(false)

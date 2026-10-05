@@ -16,6 +16,8 @@ import org.springframework.context.annotation.Import;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -46,6 +48,7 @@ public class RefreshTokenRepositoryTest {
 
         token = new RefreshTokenEntity(
                 null,
+                UUID.randomUUID().toString(),
                 testUser.getId(),
                 "random.refresh.token",
                 ZonedDateTime.now().plusDays(15),
@@ -85,6 +88,27 @@ public class RefreshTokenRepositoryTest {
 
             assertThat(foundTokensList)
                     .isEmpty();
+        }
+    }
+
+    @Nested
+    class FindByJti {
+        @Test
+        void shouldReturnOptionalToken_WhenTokenFoundByJti() {
+            RefreshTokenEntity savedToken = entityManager.persistAndFlush(token);
+            entityManager.clear();
+
+            Optional<RefreshTokenEntity> found = repository.findByJti(savedToken.getJti());
+
+            assertThat(found).isPresent();
+            assertThat(found.get().getJti()).isEqualTo(savedToken.getJti());
+        }
+
+        @Test
+        void shouldReturnOptionalEmpty_WhenTokenDoesNotFoundByJti() {
+            Optional<RefreshTokenEntity> found = repository.findByJti(UUID.randomUUID().toString());
+
+            assertThat(found).isEmpty();
         }
     }
 }

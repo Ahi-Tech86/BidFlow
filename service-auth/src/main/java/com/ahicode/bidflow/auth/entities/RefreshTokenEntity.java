@@ -22,6 +22,9 @@ public class RefreshTokenEntity {
     @EqualsAndHashCode.Include
     private UUID id;
 
+    @Column(unique = true, updatable = false, nullable = false)
+    private String jti;
+
     @Column(name = "user_id", nullable = false, updatable = false)
     private UUID userId;
 
@@ -42,6 +45,7 @@ public class RefreshTokenEntity {
     public String toString() {
         return "RefreshTokenEntity{" +
                 "id=" + id +
+                ", jti=" + jti +
                 ", userId=" + userId +
                 ", token='" + token + '\'' +
                 ", expiresAt=" + expiresAt +
