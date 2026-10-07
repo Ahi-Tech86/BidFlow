@@ -1,9 +1,7 @@
 package com.ahicode.bidflow.auth.controllers;
 
 import com.ahicode.bidflow.auth.dtos.ErrorResponse;
-import com.ahicode.bidflow.auth.exceptions.EmailAlreadyExistsException;
-import com.ahicode.bidflow.auth.exceptions.InvalidCredentialException;
-import com.ahicode.bidflow.auth.exceptions.UserBlockedException;
+import com.ahicode.bidflow.auth.exceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -23,9 +21,13 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(InvalidCredentialException.class)
+    @ExceptionHandler({
+            InvalidCredentialException.class, InvalidTokenException.class,
+            TokenExpiredException.class, TokenNotFoundException.class,
+            UserNotFoundException.class
+    })
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(
-            InvalidCredentialException ex, HttpServletRequest request
+            RuntimeException ex, HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage(), request);
     }

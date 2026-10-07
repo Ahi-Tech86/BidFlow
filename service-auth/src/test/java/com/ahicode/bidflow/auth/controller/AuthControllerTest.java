@@ -2,14 +2,12 @@ package com.ahicode.bidflow.auth.controller;
 
 import com.ahicode.bidflow.auth.TestSecurityConfiguration;
 import com.ahicode.bidflow.auth.controllers.AuthController;
-import com.ahicode.bidflow.auth.dtos.AuthResponse;
-import com.ahicode.bidflow.auth.dtos.LoginRequest;
-import com.ahicode.bidflow.auth.dtos.RegisterRequest;
-import com.ahicode.bidflow.auth.dtos.UserProfile;
+import com.ahicode.bidflow.auth.dtos.*;
 import com.ahicode.bidflow.auth.enums.UserRole;
 import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.exceptions.EmailAlreadyExistsException;
 import com.ahicode.bidflow.auth.exceptions.InvalidCredentialException;
+import com.ahicode.bidflow.auth.exceptions.InvalidTokenException;
 import com.ahicode.bidflow.auth.exceptions.UserBlockedException;
 import com.ahicode.bidflow.auth.services.AuthService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -165,6 +164,85 @@ public class AuthControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(toJson(request))
             );
+        }
+    }
+
+    @Nested
+    class Refresh {
+        @Test
+        void shouldReturnOk_WhenRefreshTokensSuccessfully() throws Exception {
+            String refreshToken = "valid.refresh.token";
+            given(authService.refreshAccessToken(refreshToken)).willReturn(authResponse);
+
+            ResultActions resultActions = performRefreshRequest("Bearer " + refreshToken);
+            resultActions.andExpect(status().isOk());
+            assertAuthResponse(resultActions);
+
+            verify(authService).refreshAccessToken(anyString());
+        }
+
+        @Test
+        void shouldReturnUnauthorized_WhenAuthorizationHeaderIsMissing() throws Exception {
+            mockMvc.perform(post("/api/v1/auth/refresh")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void shouldReturnUnauthorized_WhenAuthorizationHeaderIsInvalid() throws Exception {
+            ResultActions resultActions = performRefreshRequest("Basic someCredentials");
+            resultActions.andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void shouldPropagateServiceException() throws Exception {
+            given(authService.refreshAccessToken(anyString())).willThrow(new InvalidTokenException("Expired"));
+
+            ResultActions resultActions = performRefreshRequest("Bearer expired.token");
+            resultActions.andExpect(status().isUnauthorized());
+        }
+
+        private ResultActions performRefreshRequest(String authorizationHeader) throws Exception {
+            return mockMvc.perform(post("/api/v1/auth/refresh")
+                    .header("Authorization", authorizationHeader)
+                    .contentType(MediaType.APPLICATION_JSON));
+        }
+    }
+
+    @Nested
+    class Logout {
+        @Test
+        void shouldReturnNoContent_WhenLogoutSuccessfully() throws Exception {
+            String accessToken = "valid.access.token";
+            String refreshToken = "valid.refresh.token";
+            LogoutRequest request = new LogoutRequest(refreshToken);
+
+            mockMvc.perform(post("/api/v1/auth/logout")
+                            .header("Authorization", "Bearer " + accessToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(toJson(request)))
+                    .andExpect(status().isNoContent());
+
+            verify(authService).logout(accessToken, refreshToken);
+        }
+
+        @Test
+        void shouldReturnBadRequest_WhenRequestBodyIsInvalid() throws Exception {
+            mockMvc.perform(post("/api/v1/auth/logout")
+                            .header("Authorization", "Bearer token")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturnUnauthorized_WhenAuthorizationHeaderIsMissing() throws Exception {
+            LogoutRequest request = new LogoutRequest("token");
+
+            mockMvc.perform(post("/api/v1/auth/logout")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(toJson(request)))
+                    .andExpect(status().isBadRequest());
         }
     }
 
