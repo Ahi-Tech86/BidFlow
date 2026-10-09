@@ -1,0 +1,35 @@
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format-sql: true
+        type: trace
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+  info:
+    env:
+      enabled: true
+
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+
+application:
+  security:
+    public-endpoints:
+      - /**

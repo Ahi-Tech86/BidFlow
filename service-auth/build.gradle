@@ -1,20 +1,46 @@
-plugins {
-    id 'java'
-}
-
 group = 'com.ahicode.bidflow.auth'
 version = '1.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
+    // ========== Spring Boot ==========
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.data.jpa
+    implementation libs.spring.boot.starter.security
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.validation
 
-test {
-    useJUnitPlatform()
+    // ========== Spring Cloud ==========
+    implementation libs.spring.cloud.starter.netflix.eureka.client
+
+    // ========== Databases ==========
+    runtimeOnly libs.postgresql
+    implementation libs.flyway.core
+    implementation libs.flyway.postgresql
+
+    // ========== Documentation ==========
+    implementation libs.springdoc.openapi.ui
+
+    // ========== Lombok ==========
+    implementation libs.lombok
+    annotationProcessor libs.lombok
+
+    // ========== MapStruct ==========
+    implementation libs.mapstruct
+    annotationProcessor libs.mapstruct.processor
+
+    // ========== ShedLock ==========
+    implementation libs.shedlock.spring
+    implementation libs.shedlock.provider
+
+    // ========== JWT ==========
+    runtimeOnly libs.jjwt.impl
+    implementation libs.jjwt.api
+    runtimeOnly libs.jjwt.jackson
+
+    // ========== Testing ==========
+    testImplementation libs.testcontainers.redis
+    testImplementation libs.testcontainers.junit
+    testImplementation libs.testcontainers.postgres
+    testImplementation libs.spring.boot.testcontainers
 }
