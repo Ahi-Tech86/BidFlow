@@ -29,6 +29,10 @@ dependencies {
     implementation libs.mapstruct
     annotationProcessor libs.mapstruct.processor
 
+    // ========== ShedLock ==========
+    implementation libs.shedlock.spring
+    implementation libs.shedlock.provider
+
     // ========== JWT ==========
     runtimeOnly libs.jjwt.impl
     implementation libs.jjwt.api

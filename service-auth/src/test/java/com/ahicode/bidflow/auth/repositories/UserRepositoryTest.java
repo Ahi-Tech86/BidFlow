@@ -1,10 +1,9 @@
-package com.ahicode.bidflow.auth.repository;
+package com.ahicode.bidflow.auth.repositories;
 
 import com.ahicode.bidflow.auth.TestContainersConfiguration;
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.UserRole;
 import com.ahicode.bidflow.auth.enums.UserStatus;
-import com.ahicode.bidflow.auth.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

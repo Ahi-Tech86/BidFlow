@@ -1,4 +1,4 @@
-package com.ahicode.bidflow.auth.service;
+package com.ahicode.bidflow.auth.services;
 
 import com.ahicode.bidflow.auth.dtos.AuthResponse;
 import com.ahicode.bidflow.auth.dtos.LoginRequest;
@@ -13,8 +13,6 @@ import com.ahicode.bidflow.auth.exceptions.*;
 import com.ahicode.bidflow.auth.mappers.UserMapper;
 import com.ahicode.bidflow.auth.repositories.RefreshTokenRepository;
 import com.ahicode.bidflow.auth.repositories.UserRepository;
-import com.ahicode.bidflow.auth.services.AuthServiceImpl;
-import com.ahicode.bidflow.auth.services.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

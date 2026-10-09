@@ -2,7 +2,6 @@ package com.ahicode.bidflow.auth.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -37,7 +36,6 @@ public class RefreshTokenEntity {
     @Column(nullable = false)
     private boolean revoked = false;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 
@@ -52,5 +50,12 @@ public class RefreshTokenEntity {
                 ", revoked=" + revoked +
                 ", createdAt=" + createdAt +
                 '}';
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = ZonedDateTime.now();
+        }
     }
 }

@@ -102,3 +102,7 @@ application:
       - /actuator/health
       - /v3/api-docs/**
       - /swagger-ui/**
+
+  auth:
+    token-cleanup:
+      retention-days: 30

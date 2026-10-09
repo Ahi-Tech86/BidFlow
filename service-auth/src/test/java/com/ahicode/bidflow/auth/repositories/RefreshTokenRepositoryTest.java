@@ -1,11 +1,10 @@
-package com.ahicode.bidflow.auth.repository;
+package com.ahicode.bidflow.auth.repositories;
 
 import com.ahicode.bidflow.auth.TestContainersConfiguration;
 import com.ahicode.bidflow.auth.entities.RefreshTokenEntity;
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.UserRole;
 import com.ahicode.bidflow.auth.enums.UserStatus;
-import com.ahicode.bidflow.auth.repositories.RefreshTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -267,6 +266,161 @@ public class RefreshTokenRepositoryTest {
         void shouldDoNothing_WhenUserDontHaveTokens() {
             assertThatCode(() -> repository.revokeAllByUserId(testUser.getId()))
                     .doesNotThrowAnyException();
+        }
+    }
+    
+    @Nested
+    class DeleteAllByRevokedTrueAndCreatedAtBefore {
+        @Test
+        void shouldDeleteAllRevokedAndExpiredTokens() {
+            RefreshTokenEntity token1 = makeRefreshToken(testUser.getId(), "random.refresh.token1");
+            token1.setRevoked(true);
+            token1.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token1.setExpiresAt(ZonedDateTime.now().minusMinutes(15));
+            RefreshTokenEntity token2 = makeRefreshToken(testUser.getId(), "random.refresh.token2");
+            token2.setRevoked(true);
+            token2.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token2.setExpiresAt(ZonedDateTime.now().minusMinutes(45));
+            RefreshTokenEntity token3 = makeRefreshToken(testUser.getId(), "random.refresh.token3");
+            token3.setRevoked(true);
+            token3.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token3.setExpiresAt(ZonedDateTime.now().minusMinutes(30));
+            entityManager.persistAndFlush(token1);
+            entityManager.persistAndFlush(token2);
+            entityManager.persistAndFlush(token3);
+            entityManager.clear();
+
+            int deletedRecords = repository.deleteAllByRevokedTrueAndCreatedAtBefore(ZonedDateTime.now());
+            entityManager.clear();
+
+            assertThat(deletedRecords).isEqualTo(3);
+
+            List<RefreshTokenEntity> userTokens = repository.findAllByUserId(testUser.getId());
+            assertThat(userTokens).isEmpty();
+        }
+
+        @Test
+        void shouldDeleteOnlyRevokedAndExpiredTokens() {
+            RefreshTokenEntity token1 = makeRefreshToken(testUser.getId(), "random.refresh.token1");
+            token1.setRevoked(false);
+            token1.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token1.setExpiresAt(ZonedDateTime.now().minusMinutes(15));
+            RefreshTokenEntity token2 = makeRefreshToken(testUser.getId(), "random.refresh.token2");
+            token2.setRevoked(true);
+            token2.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token2.setExpiresAt(ZonedDateTime.now().minusMinutes(45));
+            RefreshTokenEntity token3 = makeRefreshToken(testUser.getId(), "random.refresh.token3");
+            token3.setRevoked(false);
+            token3.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            token3.setExpiresAt(ZonedDateTime.now().minusMinutes(30));
+            entityManager.persistAndFlush(token1);
+            entityManager.persistAndFlush(token2);
+            entityManager.persistAndFlush(token3);
+            entityManager.clear();
+
+            int deletedRecords = repository.deleteAllByRevokedTrueAndCreatedAtBefore(ZonedDateTime.now());
+            entityManager.clear();
+
+            assertThat(deletedRecords).isEqualTo(1);
+
+            List<RefreshTokenEntity> userTokens = repository.findAllByUserId(testUser.getId());
+            assertThat(userTokens)
+                    .isNotEmpty()
+                    .hasSize(2);
+        }
+
+        @Test
+        void shouldNotDeleteRecentRevokedTokens() {
+            ZonedDateTime cutoffDate = ZonedDateTime.now().minusDays(1);
+
+            RefreshTokenEntity oldRevokedToken = makeRefreshToken(testUser.getId(), "old.revoked.token");
+            oldRevokedToken.setRevoked(true);
+            oldRevokedToken.setCreatedAt(ZonedDateTime.now().minusDays(2));
+
+            RefreshTokenEntity recentRevokedToken = makeRefreshToken(testUser.getId(), "recent.revoked.token");
+            recentRevokedToken.setRevoked(true);
+            recentRevokedToken.setCreatedAt(ZonedDateTime.now().minusHours(2));
+
+            RefreshTokenEntity recentActiveToken = makeRefreshToken(testUser.getId(), "recent.active.token");
+            recentActiveToken.setRevoked(false);
+            recentActiveToken.setCreatedAt(ZonedDateTime.now().minusHours(1));
+
+            entityManager.persistAndFlush(oldRevokedToken);
+            entityManager.persistAndFlush(recentRevokedToken);
+            entityManager.persistAndFlush(recentActiveToken);
+            entityManager.clear();
+
+            int deletedRecords = repository.deleteAllByRevokedTrueAndCreatedAtBefore(cutoffDate);
+            entityManager.clear();
+
+            assertThat(deletedRecords).isEqualTo(1);
+
+            List<RefreshTokenEntity> remainingTokens = repository.findAllByUserId(testUser.getId());
+            assertThat(remainingTokens).hasSize(2);
+
+            assertThat(remainingTokens).extracting(RefreshTokenEntity::getToken)
+                    .containsExactly("recent.active.token", "recent.revoked.token");
+        }
+    }
+
+    @Nested
+    class DeleteAllByExpiresAtBefore {
+        @Test
+        void shouldDeleteAllExpiredTokens() {
+            RefreshTokenEntity expiredActiveToken = makeRefreshToken(testUser.getId(), "expired.refresh.token1");
+            expiredActiveToken.setExpiresAt(ZonedDateTime.now().minusDays(1));
+            expiredActiveToken.setCreatedAt(ZonedDateTime.now().minusDays(7));
+
+            RefreshTokenEntity expiredRevokedToken = makeRefreshToken(testUser.getId(), "expired.refresh.token2");
+            expiredRevokedToken.setExpiresAt(ZonedDateTime.now().minusDays(2));
+            expiredRevokedToken.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            expiredRevokedToken.setRevoked(true);
+
+            RefreshTokenEntity expiredActiveToken2 = makeRefreshToken(testUser.getId(), "expired.refresh.token3");
+            expiredActiveToken2.setExpiresAt(ZonedDateTime.now().minusDays(3));
+            expiredActiveToken2.setCreatedAt(ZonedDateTime.now().minusDays(7));
+
+            entityManager.persistAndFlush(expiredActiveToken);
+            entityManager.persistAndFlush(expiredRevokedToken);
+            entityManager.persistAndFlush(expiredActiveToken2);
+            entityManager.clear();
+
+            int deletedRows = repository.deleteAllByExpiresAtBefore(ZonedDateTime.now());
+            entityManager.clear();
+
+            assertThat(deletedRows).isEqualTo(3);
+
+            List<RefreshTokenEntity> userTokens = repository.findAllByUserId(testUser.getId());
+            assertThat(userTokens).isEmpty();
+        }
+
+        @Test
+        void shouldNotDeleteActiveTokens() {
+            RefreshTokenEntity notExpiredActiveToken = makeRefreshToken(testUser.getId(), "expired.refresh.token1");
+            notExpiredActiveToken.setExpiresAt(ZonedDateTime.now().plusDays(1));
+            notExpiredActiveToken.setCreatedAt(ZonedDateTime.now().minusDays(7));
+
+            RefreshTokenEntity notExpiredRevokedToken = makeRefreshToken(testUser.getId(), "expired.refresh.token2");
+            notExpiredRevokedToken.setExpiresAt(ZonedDateTime.now().plusDays(1));
+            notExpiredRevokedToken.setCreatedAt(ZonedDateTime.now().minusDays(7));
+            notExpiredRevokedToken.setRevoked(true);
+
+            RefreshTokenEntity expiredActiveToken = makeRefreshToken(testUser.getId(), "expired.refresh.token3");
+            expiredActiveToken.setExpiresAt(ZonedDateTime.now().minusDays(3));
+            expiredActiveToken.setCreatedAt(ZonedDateTime.now().minusDays(7));
+
+            entityManager.persistAndFlush(notExpiredActiveToken);
+            entityManager.persistAndFlush(notExpiredRevokedToken);
+            entityManager.persistAndFlush(expiredActiveToken);
+            entityManager.clear();
+
+            int deletedRows = repository.deleteAllByExpiresAtBefore(ZonedDateTime.now());
+            entityManager.clear();
+
+            assertThat(deletedRows).isEqualTo(1);
+
+            List<RefreshTokenEntity> userTokens = repository.findAllByUserId(testUser.getId());
+            assertThat(userTokens).hasSize(2);
         }
     }
 

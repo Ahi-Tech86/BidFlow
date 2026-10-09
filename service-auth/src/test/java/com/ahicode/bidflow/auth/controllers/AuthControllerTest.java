@@ -1,7 +1,6 @@
-package com.ahicode.bidflow.auth.controller;
+package com.ahicode.bidflow.auth.controllers;
 
 import com.ahicode.bidflow.auth.TestSecurityConfiguration;
-import com.ahicode.bidflow.auth.controllers.AuthController;
 import com.ahicode.bidflow.auth.dtos.*;
 import com.ahicode.bidflow.auth.enums.UserRole;
 import com.ahicode.bidflow.auth.enums.UserStatus;

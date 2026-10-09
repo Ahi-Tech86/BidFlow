@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,4 +19,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     @Modifying
     @Query("UPDATE RefreshTokenEntity r SET r.revoked = true WHERE r.userId = :userId AND r.revoked = false")
     void revokeAllByUserId(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM RefreshTokenEntity r WHERE r.revoked = true AND r.createdAt < :dateTime")
+    int deleteAllByRevokedTrueAndCreatedAtBefore(@Param("dateTime") ZonedDateTime dateTime);
+
+    @Modifying
+    @Query("DELETE FROM RefreshTokenEntity r WHERE r.expiresAt < :dateTime")
+    int deleteAllByExpiresAtBefore(@Param("dateTime") ZonedDateTime dateTime);
 }

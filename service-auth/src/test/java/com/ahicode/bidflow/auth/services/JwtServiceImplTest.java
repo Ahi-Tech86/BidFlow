@@ -1,10 +1,9 @@
-package com.ahicode.bidflow.auth.service;
+package com.ahicode.bidflow.auth.services;
 
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.TokenType;
 import com.ahicode.bidflow.auth.enums.UserRole;
 import com.ahicode.bidflow.auth.enums.UserStatus;
-import com.ahicode.bidflow.auth.services.JwtServiceImpl;
 import com.ahicode.bidflow.auth.utils.JwtKeyProvider;
 import com.ahicode.bidflow.auth.utils.JwtProperties;
 import io.jsonwebtoken.Claims;
