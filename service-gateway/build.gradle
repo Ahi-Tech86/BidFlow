@@ -1,20 +1,18 @@
-plugins {
-    id 'java'
-}
-
 group = 'com.ahicode.bidflow.gateway'
 version = '1.0-SNAPSHOT'
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
+    // ========== Spring Boot ==========
+    implementation libs.spring.boot.starter.webflux
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.oauth2.resource.server
 
-test {
-    useJUnitPlatform()
+    // ========== Spring Cloud ==========
+    implementation libs.spring.cloud.starter.netflix.eureka.client
+    implementation libs.spring.cloud.starter.gateway.server.webflux
+
+    // ========== Lombok ==========
+    implementation libs.lombok
+    annotationProcessor libs.lombok
 }
