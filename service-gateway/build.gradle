@@ -15,4 +15,9 @@ dependencies {
     // ========== Lombok ==========
     implementation libs.lombok
     annotationProcessor libs.lombok
+
+    // ========== JWT ==========
+    runtimeOnly libs.jjwt.impl
+    implementation libs.jjwt.api
+    runtimeOnly libs.jjwt.jackson
 }
