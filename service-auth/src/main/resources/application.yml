@@ -37,14 +37,10 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+          max-wait: 1s
 
   cache:
     type: redis
-    redis:
-      time-to-live: 900000
-      key-prefix: "auth:"
-      use-key-prefix: true
-      cache-null-values: false
 
 eureka:
   client:

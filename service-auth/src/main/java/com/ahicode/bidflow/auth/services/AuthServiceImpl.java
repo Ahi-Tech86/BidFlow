@@ -15,6 +15,7 @@ import com.ahicode.bidflow.auth.repositories.UserRepository;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private final StringRedisTemplate stringRedisTemplate;
     private final RefreshTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
@@ -156,7 +158,19 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // TODO: add access token in blacklist
+        // Put access token in blacklist
+        if (accessToken != null && !accessToken.isBlank()) {
+            try {
+                String jti = jwtService.extractClaims(accessToken, TokenType.ACCESS_TOKEN, Claims::getId);
+
+                String blacklistKey = "blacklist:" + jti;
+                stringRedisTemplate.opsForValue().set(blacklistKey, "1", jwtService.getAccessTokenTtl());
+                log.info("[AUTH] Access token with JTI: {} added to blacklist", jti);
+
+            } catch (Exception e) {
+                log.warn("Could not save access token in blacklist during logout (token may be already invalid/expired): {}", e.getMessage());
+            }
+        }
     }
 
     private AuthResponse createAuthResponse(String refreshToken, String accessToken, UserEntity user) {
