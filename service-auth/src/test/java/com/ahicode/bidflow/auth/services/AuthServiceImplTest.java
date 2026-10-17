@@ -22,6 +22,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
@@ -40,6 +44,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceImplTest {
 
+    @Mock private ValueOperations<String, String> valueOperations;
+    @Mock private StringRedisTemplate stringRedisTemplate;
     @Mock private RefreshTokenRepository tokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private UserRepository userRepository;
@@ -50,7 +56,14 @@ public class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthServiceImpl(tokenRepository, passwordEncoder, userRepository, userMapper, jwtService);
+        authService = new AuthServiceImpl(
+                stringRedisTemplate,
+                tokenRepository,
+                passwordEncoder,
+                userRepository,
+                userMapper,
+                jwtService
+        );
     }
 
     @Nested
@@ -433,42 +446,84 @@ public class AuthServiceImplTest {
 
     @Nested
     class Logout {
+
+        @BeforeEach
+        void setUp() {
+            given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
+        }
+
         @Test
         void shouldLogoutSuccessfully() {
             String refreshToken = "old.refresh.token";
             String accessToken = "old.access.token";
             String jti = UUID.randomUUID().toString();
-            UUID userId = UUID.randomUUID();
+            String userId = UUID.randomUUID().toString();
+            Duration expectedTtl = Duration.ofMinutes(30);
 
             RefreshTokenEntity storedToken = new RefreshTokenEntity();
             storedToken.setJti(jti);
-            storedToken.setUserId(userId);
             storedToken.setRevoked(false);
 
             given(jwtService.extractClaims(eq(refreshToken), eq(TokenType.REFRESH_TOKEN), any()))
                     .willReturn(jti)
-                    .willReturn(userId.toString());
+                    .willReturn(userId);
+
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willReturn(jti);
+
             given(tokenRepository.findByJti(eq(jti))).willReturn(Optional.of(storedToken));
+            given(jwtService.getAccessTokenTtl()).willReturn(expectedTtl);
 
             authService.logout(accessToken, refreshToken);
 
             assertThat(storedToken.isRevoked()).isTrue();
             verify(tokenRepository).save(eq(storedToken));
+            verify(valueOperations).set("blacklist:" + jti, "1", expectedTtl);
+            verify(jwtService).getAccessTokenTtl();
+
             verify(tokenRepository, never()).revokeAllByUserId(any());
         }
 
         @Test
-        void shouldDoNothing_WhenRefreshTokenIsNull() {
-            authService.logout("some.access.token", null);
+        void shouldProcessAccessToken_WhenRefreshTokenIsNull() {
+            String accessToken = "valid.access.token";
+            String accessJti = "access-jti";
+            Duration expectedTtl = Duration.ofMinutes(30);
 
-            verifyNoInteractions(jwtService, tokenRepository);
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willReturn(accessJti);
+            given(jwtService.getAccessTokenTtl()).willReturn(expectedTtl);
+
+            authService.logout(accessToken, null);
+
+            verify(tokenRepository, never()).findByJti(anyString());
+            verify(valueOperations).set("blacklist:" + accessJti, "1", expectedTtl);
+            verify(jwtService).getAccessTokenTtl();
         }
 
         @Test
-        void shouldDoNothing_WhenRefreshTokenIsBlank() {
-            authService.logout("some.access.token", "   ");
+        void shouldProcessAccessToken_WhenRefreshTokenIsBlank() {
+            String accessToken = "valid.access.token";
+            String accessJti = "access-jti";
+            Duration expectedTtl = Duration.ofMinutes(30);
 
-            verifyNoInteractions(jwtService, tokenRepository);
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willReturn(accessJti);
+            given(jwtService.getAccessTokenTtl()).willReturn(expectedTtl);
+
+            authService.logout(accessToken, "   ");
+
+            verify(tokenRepository, never()).findByJti(anyString());
+            verify(valueOperations).set("blacklist:" + accessJti, "1", expectedTtl);
+            verify(jwtService).getAccessTokenTtl();
+        }
+
+        @Test
+        @MockitoSettings(strictness = Strictness.LENIENT)
+        void shouldDoNothing_WhenBothTokensNullOrBlank() {
+            authService.logout(null, "  ");
+
+            verifyNoInteractions(jwtService, stringRedisTemplate, tokenRepository);
         }
 
         @Test
@@ -476,30 +531,72 @@ public class AuthServiceImplTest {
             String refreshToken = "old.refresh.token";
             String accessToken = "old.access.token";
             String jti = UUID.randomUUID().toString();
-            UUID userId = UUID.randomUUID();
+            String userId = UUID.randomUUID().toString();
+            Duration expectedTtl = Duration.ofMinutes(15);
 
             given(jwtService.extractClaims(eq(refreshToken), eq(TokenType.REFRESH_TOKEN), any()))
                     .willReturn(jti)
-                    .willReturn(userId.toString());
+                    .willReturn(userId);
             given(tokenRepository.findByJti(eq(jti))).willReturn(Optional.empty());
+
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willReturn(jti);
+            given(jwtService.getAccessTokenTtl()).willReturn(expectedTtl);
 
             authService.logout(accessToken, refreshToken);
 
+            verify(valueOperations).set("blacklist:" + jti, "1", expectedTtl);
             verify(tokenRepository, never()).save(any(RefreshTokenEntity.class));
         }
 
         @Test
-        void shouldHandleGracefully_WhenExceptionOccurredDuringProcessing() {
+        void shouldHandleGracefully_WhenExceptionOccurredDuringRefreshTokenProcessing() {
             String refreshToken = "old.refresh.token";
             String accessToken = "old.access.token";
+            String jti = UUID.randomUUID().toString();
+            Duration expectedTtl = Duration.ofMinutes(30);
 
             given(jwtService.extractClaims(eq(refreshToken), eq(TokenType.REFRESH_TOKEN), any()))
                     .willThrow(new IllegalArgumentException("Invalid token format"));
 
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willReturn(jti);
+            given(jwtService.getAccessTokenTtl()).willReturn(expectedTtl);
+
             assertDoesNotThrow(() -> authService.logout(accessToken, refreshToken));
 
+            verify(valueOperations).set("blacklist:" + jti, "1", expectedTtl);
+            verify(jwtService).getAccessTokenTtl();
             verify(tokenRepository, never()).findByJti(anyString());
             verify(tokenRepository, never()).save(any(RefreshTokenEntity.class));
+        }
+
+        @Test
+        @MockitoSettings(strictness = Strictness.LENIENT)
+        void shouldHandleGracefully_WhenExceptionOccurredDuringAccessTokenProcessing() {
+            String refreshToken = "some.refresh.token";
+            String accessToken = "some.access.token";
+            String refreshJti = "refresh-jti";
+            String userId = UUID.randomUUID().toString();
+
+            RefreshTokenEntity storedToken = new RefreshTokenEntity();
+            storedToken.setToken(refreshToken);
+            storedToken.setJti(refreshJti);
+            storedToken.setRevoked(false);
+
+            given(jwtService.extractClaims(eq(refreshToken), eq(TokenType.REFRESH_TOKEN), any()))
+                    .willReturn(refreshJti)
+                    .willReturn(userId);
+            given(tokenRepository.findByJti(eq(refreshJti)))
+                    .willReturn(Optional.of(storedToken));
+
+            given(jwtService.extractClaims(eq(accessToken), eq(TokenType.ACCESS_TOKEN), any()))
+                    .willThrow(new IllegalArgumentException("Invalid access token"));
+
+            assertDoesNotThrow(() -> authService.logout(accessToken, refreshToken));
+
+            verify(tokenRepository).save(storedToken);
+            verify(valueOperations, never()).set(eq("blacklist:" + refreshJti), anyString(), any(Duration.class));
         }
     }
 }

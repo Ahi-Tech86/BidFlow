@@ -1,0 +1,16 @@
+spring:
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0cy1vbmx5LWRvLW5vdC11c2UtaW4tcHJvZHVjdGlvbg==
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false

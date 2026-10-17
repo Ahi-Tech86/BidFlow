@@ -1,0 +1,95 @@
+server:
+  port: ${API_GATEWAY_PORT}
+
+spring:
+  application:
+    name: api-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${AUTH_CACHE_DATABASE:0}  # Shared with Auth Service for blacklist
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret-key: ${ACCESS_TOKEN_SECRET_KEY}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "*"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowedCredentials: false
+
+          routes:
+            - id: auth-service-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/v1/auth/**
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+
+    service-url:
+      defaultZone: http://localhost:${EUREKA_SERVER_PORT}/eureka
+
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+      access: read-only
+    env:
+      access: none
+    beans:
+      access: none
+    configprops:
+      access: none
+    threaddump:
+      access: none
+    heapdump:
+      access: none
+
+info:
+  app:
+    name: API Gateway
+    description: Routing, JWT Validation, and Security
+    version: 1.0.0
+
+application:
+  gateway:
+    public-endpoints:
+      - /api/v1/auth/register
+      - /api/v1/auth/login
+      - /api/v1/auth/refresh
+      - /actuator/health

@@ -170,10 +170,10 @@ public class AuthControllerTest {
     class Refresh {
         @Test
         void shouldReturnOk_WhenRefreshTokensSuccessfully() throws Exception {
-            String refreshToken = "valid.refresh.token";
-            given(authService.refreshAccessToken(refreshToken)).willReturn(authResponse);
+            RefreshTokenRequest request = new RefreshTokenRequest("valid.refresh.token");
+            given(authService.refreshAccessToken(request.refreshToken())).willReturn(authResponse);
 
-            ResultActions resultActions = performRefreshRequest("Bearer " + refreshToken);
+            ResultActions resultActions = performRefreshRequest(request);
             resultActions.andExpect(status().isOk());
             assertAuthResponse(resultActions);
 
@@ -181,30 +181,25 @@ public class AuthControllerTest {
         }
 
         @Test
-        void shouldReturnUnauthorized_WhenAuthorizationHeaderIsMissing() throws Exception {
+        void shouldReturnUnauthorized_WhenRequestBodyMissing() throws Exception {
             mockMvc.perform(post("/api/v1/auth/refresh")
                             .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        void shouldReturnUnauthorized_WhenAuthorizationHeaderIsInvalid() throws Exception {
-            ResultActions resultActions = performRefreshRequest("Basic someCredentials");
-            resultActions.andExpect(status().isUnauthorized());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
         void shouldPropagateServiceException() throws Exception {
+            RefreshTokenRequest request = new RefreshTokenRequest("valid.refresh.token");
             given(authService.refreshAccessToken(anyString())).willThrow(new InvalidTokenException("Expired"));
 
-            ResultActions resultActions = performRefreshRequest("Bearer expired.token");
+            ResultActions resultActions = performRefreshRequest(request);
             resultActions.andExpect(status().isUnauthorized());
         }
 
-        private ResultActions performRefreshRequest(String authorizationHeader) throws Exception {
+        private ResultActions performRefreshRequest(RefreshTokenRequest request) throws Exception {
             return mockMvc.perform(post("/api/v1/auth/refresh")
-                    .header("Authorization", authorizationHeader)
-                    .contentType(MediaType.APPLICATION_JSON));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(toJson(request)));
         }
     }
 

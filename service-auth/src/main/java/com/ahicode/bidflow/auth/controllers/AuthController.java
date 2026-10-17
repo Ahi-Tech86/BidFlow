@@ -108,20 +108,10 @@ public class AuthController {
             )
     })
     public ResponseEntity<AuthResponse> refresh(
-            @Parameter(
-                    description = "Authorization header containing the Refresh Token. Format: 'Bearer'",
-                    required = true,
-                    example = "Bearer eyJhbGciOiJIUzI1NiJ9..."
-            )
-            @RequestHeader(value = "Authorization", required = false) String authHeader
+            @Parameter(description = "Request body containing the Refresh Token for get new Access Token")
+            @RequestBody @Valid RefreshTokenRequest request
     ) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new InvalidTokenException("Missing or invalid Authorization header");
-        }
-
-        String refreshToken = authHeader.substring(7);
-
-        return ResponseEntity.ok(service.refreshAccessToken(refreshToken));
+        return ResponseEntity.ok(service.refreshAccessToken(request.refreshToken()));
     }
 
     @PostMapping("/logout")
