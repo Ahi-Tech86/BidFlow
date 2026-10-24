@@ -7,11 +7,12 @@ import com.ahicode.bidflow.auth.dtos.UserProfile;
 import com.ahicode.bidflow.auth.entities.RefreshTokenEntity;
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.TokenType;
-import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.exceptions.*;
 import com.ahicode.bidflow.auth.mappers.UserMapper;
 import com.ahicode.bidflow.auth.repositories.RefreshTokenRepository;
 import com.ahicode.bidflow.auth.repositories.UserRepository;
+import com.ahicode.bidflow.common.enums.UserStatus;
+import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new InvalidCredentialException("Wrong email or password"));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new UserBlockedException("Your account has been blocked, please contact support");
+            throw new UserNotAllowedException();
         }
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -119,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (user.getStatus() != UserStatus.ACTIVE) {
             tokenRepository.revokeAllByUserId(userId);
-            throw new UserBlockedException("Your account has been suspended or blocked, please contact support");
+            throw new UserNotAllowedException();
         }
 
         // Token rotation: revoke old token

@@ -1,7 +1,7 @@
 package com.ahicode.bidflow.auth.dtos;
 
-import com.ahicode.bidflow.auth.enums.UserRole;
-import com.ahicode.bidflow.auth.enums.UserStatus;
+import com.ahicode.bidflow.common.enums.UserRole;
+import com.ahicode.bidflow.common.enums.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

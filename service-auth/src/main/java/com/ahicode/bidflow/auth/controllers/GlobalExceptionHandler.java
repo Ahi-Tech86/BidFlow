@@ -1,7 +1,8 @@
 package com.ahicode.bidflow.auth.controllers;
 
-import com.ahicode.bidflow.auth.dtos.ErrorResponse;
 import com.ahicode.bidflow.auth.exceptions.*;
+import com.ahicode.bidflow.common.dtos.ErrorResponse;
+import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,9 +40,9 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
     }
 
-    @ExceptionHandler(UserBlockedException.class)
+    @ExceptionHandler(UserNotAllowedException.class)
     public ResponseEntity<ErrorResponse> handleUserBlocked(
-            UserBlockedException ex, HttpServletRequest request
+            UserNotAllowedException ex, HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.FORBIDDEN, "Forbidden", ex.getMessage(), request);
     }

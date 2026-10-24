@@ -4,7 +4,7 @@ import com.ahicode.bidflow.bidding.dtos.BidRequest;
 import com.ahicode.bidflow.bidding.dtos.BidResponse;
 import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
 import com.ahicode.bidflow.bidding.dtos.LotResponse;
-import com.ahicode.bidflow.bidding.enums.UserStatus;
+import com.ahicode.bidflow.common.enums.UserStatus;
 
 import java.util.UUID;
 

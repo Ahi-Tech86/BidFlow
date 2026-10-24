@@ -1,4 +1,4 @@
-package com.ahicode.bidflow.bidding.exceptions;
+package com.ahicode.bidflow.common.exceptions;
 
 public class UserNotAllowedException extends RuntimeException {
     public UserNotAllowedException() {

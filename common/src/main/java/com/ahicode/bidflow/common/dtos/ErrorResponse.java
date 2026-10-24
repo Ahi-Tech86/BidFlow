@@ -1,4 +1,4 @@
-package com.ahicode.bidflow.bidding.dtos;
+package com.ahicode.bidflow.common.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

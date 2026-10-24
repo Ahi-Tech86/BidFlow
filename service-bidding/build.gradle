@@ -32,4 +32,7 @@ dependencies {
     testImplementation libs.testcontainers.junit
     testImplementation libs.testcontainers.postgres
     testImplementation libs.spring.boot.testcontainers
+
+    // ========== Common library ==========
+    implementation project(':common')
 }

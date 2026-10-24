@@ -1,8 +1,12 @@
 package com.ahicode.bidflow.bidding.controllers;
 
-import com.ahicode.bidflow.bidding.dtos.*;
-import com.ahicode.bidflow.bidding.enums.UserStatus;
+import com.ahicode.bidflow.bidding.dtos.BidRequest;
+import com.ahicode.bidflow.bidding.dtos.BidResponse;
+import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
+import com.ahicode.bidflow.bidding.dtos.LotResponse;
 import com.ahicode.bidflow.bidding.services.LotService;
+import com.ahicode.bidflow.common.dtos.ErrorResponse;
+import com.ahicode.bidflow.common.enums.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

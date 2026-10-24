@@ -1,7 +1,7 @@
 package com.ahicode.bidflow.auth.entities;
 
-import com.ahicode.bidflow.auth.enums.UserRole;
-import com.ahicode.bidflow.auth.enums.UserStatus;
+import com.ahicode.bidflow.common.enums.UserRole;
+import com.ahicode.bidflow.common.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

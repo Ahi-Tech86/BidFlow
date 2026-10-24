@@ -7,12 +7,13 @@ import com.ahicode.bidflow.auth.dtos.UserProfile;
 import com.ahicode.bidflow.auth.entities.RefreshTokenEntity;
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.TokenType;
-import com.ahicode.bidflow.auth.enums.UserRole;
-import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.exceptions.*;
 import com.ahicode.bidflow.auth.mappers.UserMapper;
 import com.ahicode.bidflow.auth.repositories.RefreshTokenRepository;
 import com.ahicode.bidflow.auth.repositories.UserRepository;
+import com.ahicode.bidflow.common.enums.UserRole;
+import com.ahicode.bidflow.common.enums.UserStatus;
+import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -205,8 +206,8 @@ public class AuthServiceImplTest {
             given(userRepository.findByEmail(anyString())).willReturn(Optional.of(notActiveUser));
 
             assertThatThrownBy(() -> authService.login(request))
-                    .isInstanceOf(UserBlockedException.class)
-                    .hasMessageContaining("Your account has been blocked, please contact support");
+                    .isInstanceOf(UserNotAllowedException.class)
+                    .hasMessageContaining("Your account has been suspended or blocked, please contact support");
 
             verify(tokenRepository, never()).save(any(RefreshTokenEntity.class));
         }
@@ -435,7 +436,7 @@ public class AuthServiceImplTest {
             given(userRepository.findById(eq(userId))).willReturn(Optional.of(user));
 
             assertThatThrownBy(() -> authService.refreshAccessToken(oldRefreshToken))
-                    .isInstanceOf(UserBlockedException.class)
+                    .isInstanceOf(UserNotAllowedException.class)
                     .hasMessageContaining("Your account has been suspended or blocked, please contact support");
 
             verify(tokenRepository, times(1)).revokeAllByUserId(eq(userId));

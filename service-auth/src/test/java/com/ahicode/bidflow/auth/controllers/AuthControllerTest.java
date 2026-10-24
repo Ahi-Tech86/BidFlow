@@ -2,13 +2,13 @@ package com.ahicode.bidflow.auth.controllers;
 
 import com.ahicode.bidflow.auth.TestSecurityConfiguration;
 import com.ahicode.bidflow.auth.dtos.*;
-import com.ahicode.bidflow.auth.enums.UserRole;
-import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.exceptions.EmailAlreadyExistsException;
 import com.ahicode.bidflow.auth.exceptions.InvalidCredentialException;
 import com.ahicode.bidflow.auth.exceptions.InvalidTokenException;
-import com.ahicode.bidflow.auth.exceptions.UserBlockedException;
 import com.ahicode.bidflow.auth.services.AuthService;
+import com.ahicode.bidflow.common.enums.UserRole;
+import com.ahicode.bidflow.common.enums.UserStatus;
+import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -150,7 +150,7 @@ public class AuthControllerTest {
 
         @Test
         void shouldReturnForbidden_WhenUserBlockedOrSuspended() throws Exception {
-            given(authService.login(request)).willThrow(UserBlockedException.class);
+            given(authService.login(request)).willThrow(UserNotAllowedException.class);
 
             ResultActions resultActions = performLoginRequest(request);
 

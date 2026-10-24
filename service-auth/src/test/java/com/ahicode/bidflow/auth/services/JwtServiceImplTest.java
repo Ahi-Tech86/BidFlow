@@ -2,10 +2,10 @@ package com.ahicode.bidflow.auth.services;
 
 import com.ahicode.bidflow.auth.entities.UserEntity;
 import com.ahicode.bidflow.auth.enums.TokenType;
-import com.ahicode.bidflow.auth.enums.UserRole;
-import com.ahicode.bidflow.auth.enums.UserStatus;
 import com.ahicode.bidflow.auth.utils.JwtKeyProvider;
 import com.ahicode.bidflow.auth.utils.JwtProperties;
+import com.ahicode.bidflow.common.enums.UserRole;
+import com.ahicode.bidflow.common.enums.UserStatus;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;

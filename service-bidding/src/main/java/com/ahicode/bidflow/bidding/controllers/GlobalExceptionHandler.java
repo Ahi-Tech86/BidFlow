@@ -1,7 +1,11 @@
 package com.ahicode.bidflow.bidding.controllers;
 
-import com.ahicode.bidflow.bidding.dtos.ErrorResponse;
-import com.ahicode.bidflow.bidding.exceptions.*;
+import com.ahicode.bidflow.bidding.exceptions.BidTooLowException;
+import com.ahicode.bidflow.bidding.exceptions.LotNotActiveException;
+import com.ahicode.bidflow.bidding.exceptions.LotNotFoundException;
+import com.ahicode.bidflow.bidding.exceptions.OwnerCannotBidException;
+import com.ahicode.bidflow.common.dtos.ErrorResponse;
+import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -69,7 +73,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> buildErrorResponse(
             HttpStatus httpStatus, String error, String message, HttpServletRequest request
     ) {
-        ErrorResponse response = new com.ahicode.bidflow.bidding.dtos.ErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),
                 httpStatus.value(),
                 error,
