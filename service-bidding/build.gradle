@@ -26,4 +26,10 @@ dependencies {
     // ========== MapStruct ==========
     implementation libs.mapstruct
     annotationProcessor libs.mapstruct.processor
+
+    // ========== Testing ==========
+    testImplementation libs.testcontainers.redis
+    testImplementation libs.testcontainers.junit
+    testImplementation libs.testcontainers.postgres
+    testImplementation libs.spring.boot.testcontainers
 }
