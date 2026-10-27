@@ -1,6 +1,7 @@
 package com.ahicode.bidflow.bidding.mappers;
 
 import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
+import com.ahicode.bidflow.bidding.dtos.LotListItemResponse;
 import com.ahicode.bidflow.bidding.dtos.LotResponse;
 import com.ahicode.bidflow.bidding.entities.LotEntity;
 import com.ahicode.bidflow.bidding.enums.LotStatus;
@@ -89,6 +90,39 @@ public class LotMapperTest {
                             lotId, ownerId, "Ferrari F40", "Classic sport car",
                             BigDecimal.valueOf(100_000.00), LotStatus.ACTIVE, BigDecimal.valueOf(50.00),
                             now.plusDays(15), now.minusDays(2), now.minusDays(2)
+                    );
+        }
+    }
+
+    @Nested
+    class toListItemResponse {
+        @Test
+        void shouldMapOnlyAllowedFields_FromLotEntity() {
+            ZonedDateTime now = ZonedDateTime.now();
+            UUID lotId = UUID.randomUUID();
+            UUID ownerId = UUID.randomUUID();
+            LotEntity entity = new LotEntity(
+                    lotId,
+                    ownerId,
+                    "Ferrari F40",
+                    "Classic sport car",
+                    BigDecimal.valueOf(100_000.00),
+                    LotStatus.ACTIVE,
+                    BigDecimal.valueOf(50.00),
+                    now.plusDays(15),
+                    now.minusDays(2),
+                    now.minusDays(2)
+            );
+
+            LotListItemResponse response = mapper.toListItemResponse(entity);
+
+            assertThat(response)
+                    .isNotNull()
+                    .extracting(
+                            LotListItemResponse::lotId, LotListItemResponse::name, LotListItemResponse::startPrice
+                    )
+                    .containsExactly(
+                            lotId, "Ferrari F40", BigDecimal.valueOf(100_000.00)
                     );
         }
     }

@@ -1,16 +1,10 @@
 package com.ahicode.bidflow.bidding.services;
 
-import com.ahicode.bidflow.bidding.dtos.BidRequest;
-import com.ahicode.bidflow.bidding.dtos.BidResponse;
-import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
-import com.ahicode.bidflow.bidding.dtos.LotResponse;
+import com.ahicode.bidflow.bidding.dtos.*;
 import com.ahicode.bidflow.bidding.entities.BidEntity;
 import com.ahicode.bidflow.bidding.entities.LotEntity;
 import com.ahicode.bidflow.bidding.enums.LotStatus;
-import com.ahicode.bidflow.bidding.exceptions.BidTooLowException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotActiveException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotFoundException;
-import com.ahicode.bidflow.bidding.exceptions.OwnerCannotBidException;
+import com.ahicode.bidflow.bidding.exceptions.*;
 import com.ahicode.bidflow.bidding.mappers.BidMapper;
 import com.ahicode.bidflow.bidding.mappers.LotMapper;
 import com.ahicode.bidflow.bidding.repositories.BidRepository;
@@ -27,9 +21,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -294,6 +293,233 @@ public class LotServiceTest {
             verify(bidRepository).findMaxBidForLotByLotId(any(UUID.class));
             verifyNoMoreInteractions(lotRepository, bidRepository);
             verifyNoInteractions(lotMapper, bidMapper);
+        }
+    }
+
+    @Nested
+    class GetLotsByStatus {
+        @Test
+        void shouldReturnMappedPage_WhenStatusIsProvided() {
+            LotStatus requestedStatus = LotStatus.FINISHED;
+            Pageable pageable = PageRequest.of(0, 10);
+
+            LotEntity mockEntity = mock(LotEntity.class);
+            Page<LotEntity> entityPage = new PageImpl<>(List.of(mockEntity), pageable, 1);
+
+            LotListItemResponse mockResponse = mock(LotListItemResponse.class);
+
+            given(lotRepository.findByStatus(eq(requestedStatus), eq(pageable))).willReturn(entityPage);
+            given(lotMapper.toListItemResponse(eq(mockEntity))).willReturn(mockResponse);
+
+            Page<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst()).isEqualTo(mockResponse);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+
+            verify(lotRepository).findByStatus(requestedStatus, pageable);
+            verify(lotMapper).toListItemResponse(mockEntity);
+        }
+
+        @Test
+        void shouldReturnMappedPageWithActiveStatus_WhenStatusIsNull() {
+            Pageable pageable = PageRequest.of(0, 10);
+
+            LotEntity mockEntity = mock(LotEntity.class);
+            Page<LotEntity> entityPage = new PageImpl<>(List.of(mockEntity), pageable, 1);
+
+            LotListItemResponse mockResponse = mock(LotListItemResponse.class);
+
+            given(lotRepository.findByStatus(eq(LotStatus.ACTIVE), eq(pageable))).willReturn(entityPage);
+            given(lotMapper.toListItemResponse(eq(mockEntity))).willReturn(mockResponse);
+
+            Page<LotListItemResponse> result = service.getLotsByStatus(null, pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().getFirst()).isEqualTo(mockResponse);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+
+            verify(lotRepository).findByStatus(LotStatus.ACTIVE, pageable);
+            verify(lotMapper).toListItemResponse(mockEntity);
+        }
+
+        @Test
+        void shouldReturnEmptyPage_WhenNoLotsFound() {
+            LotStatus requestedStatus = LotStatus.FINISHED;
+            Pageable pageable = PageRequest.of(0, 10);
+
+            Page<LotEntity> emptyEntityPage = Page.empty(pageable);
+
+            given(lotRepository.findByStatus(eq(requestedStatus), eq(pageable))).willReturn(emptyEntityPage);
+
+            Page<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).isEmpty();
+            assertThat(result.getTotalElements()).isZero();
+
+            verify(lotRepository).findByStatus(requestedStatus, pageable);
+            verify(lotMapper, never()).toListItemResponse(any());
+        }
+    }
+
+    @Nested
+    class GetLotDetails {
+        @Test
+        void shouldReturnLotResponse() {
+            ZonedDateTime now = ZonedDateTime.now();
+            UUID lotId = UUID.randomUUID();
+            LotEntity lotEntity = new LotEntity();
+            lotEntity.setId(lotId);
+            LotResponse expectedResponse = new LotResponse(
+                    lotId,
+                    UUID.randomUUID(),
+                    "Some name",
+                    "Some description",
+                    BigDecimal.valueOf(100.00),
+                    BigDecimal.valueOf(0.50),
+                    LotStatus.ACTIVE,
+                    now.plusDays(14),
+                    now,
+                    now
+            );
+
+            given(lotRepository.findById(eq(lotId))).willReturn(Optional.of(lotEntity));
+            given(lotMapper.toResponse(eq(lotEntity))).willReturn(expectedResponse);
+
+            LotResponse result = service.getLotDetails(lotId);
+
+            assertThat(result)
+                    .isNotNull()
+                    .extracting(LotResponse::lotId, LotResponse::name, LotResponse::startPrice)
+                    .containsExactly(lotId, "Some name", BigDecimal.valueOf(100.00));
+
+            verify(lotRepository).findById(lotId);
+            verify(lotMapper).toResponse(any(LotEntity.class));
+        }
+
+        @Test
+        void shouldThrowException_WhenLotNotFoundByRequestedId() {
+            UUID lotId = UUID.randomUUID();
+
+            given(lotRepository.findById(eq(lotId))).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.getLotDetails(lotId))
+                    .isInstanceOf(LotNotFoundException.class)
+                    .hasMessageContaining("Lot with id " + lotId + " not found.");
+        }
+    }
+
+    @Nested
+    class CancelAuctionLot {
+        @Test
+        void shouldReturnResponseSuccessfully() {
+            ZonedDateTime now = ZonedDateTime.now();
+            ZonedDateTime finishedAt = now.plusDays(10);
+            ZonedDateTime createdAt = now.minusDays(10);
+            UUID lotId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UserStatus userStatus = UserStatus.ACTIVE;
+
+            LotEntity lot = new LotEntity();
+            lot.setId(lotId);
+            lot.setOwnerId(userId);
+            lot.setStatus(LotStatus.ACTIVE);
+
+            LotEntity savedLot = new LotEntity();
+            savedLot.setStatus(LotStatus.CANCELLED);
+            savedLot.setCreatedAt(createdAt);
+
+            LotResponse expectedResponse = new LotResponse(
+                    lotId, userId, "Name", "Description", BigDecimal.valueOf(100.00),
+                    BigDecimal.valueOf(5.00), LotStatus.CANCELLED, finishedAt, createdAt, now
+            );
+
+            given(lotRepository.findById(any(UUID.class))).willReturn(Optional.of(lot));
+            given(lotRepository.save(any(LotEntity.class))).willReturn(savedLot);
+            given(lotMapper.toResponse(any(LotEntity.class))).willReturn(expectedResponse);
+
+            LotResponse actualResponse = service.cancelAuctionLot(lotId, userId, userStatus);
+
+            assertThat(actualResponse)
+                    .isNotNull()
+                    .extracting(LotResponse::lotId, LotResponse::name, LotResponse::status)
+                    .containsExactly(lotId, "Name", LotStatus.CANCELLED);
+
+            assertThat(actualResponse.updatedAt()).isAfter(actualResponse.createdAt());
+
+            verify(lotRepository).findById(any(UUID.class));
+            verify(lotMapper).toResponse(any(LotEntity.class));
+
+            ArgumentCaptor<LotEntity> lotCaptor = ArgumentCaptor.forClass(LotEntity.class);
+            verify(lotRepository).save(lotCaptor.capture());
+            assertThat(lotCaptor.getValue().getStatus()).isEqualTo(LotStatus.CANCELLED);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = UserStatus.class, names = {"SUSPENDED", "BLOCKED"})
+        void shouldThrowException_WhenUserNotAllowedCancelLot_BecauseHisAccountNotActive(UserStatus userStatus) {
+            assertThatThrownBy(() -> service.cancelAuctionLot(UUID.randomUUID(), UUID.randomUUID(), userStatus))
+                    .isInstanceOf(UserNotAllowedException.class)
+                    .hasMessageContaining("Your account has been suspended or blocked, please contact support");
+
+            verifyNoInteractions(lotRepository, lotMapper);
+        }
+
+        @Test
+        void shouldThrowException_WhenLotNotFoundByRequestedId() {
+            UUID requestedLotId = UUID.randomUUID();
+
+            given(lotRepository.findById(requestedLotId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.cancelAuctionLot(requestedLotId, UUID.randomUUID(), UserStatus.ACTIVE))
+                    .isInstanceOf(LotNotFoundException.class)
+                    .hasMessageContaining("Lot with id " + requestedLotId + " not found.");
+
+            verifyNoMoreInteractions(lotRepository);
+            verifyNoInteractions(lotMapper);
+        }
+
+        @Test
+        void shouldThrowException_WhenUserIsNotOwnerOfLot() {
+            UUID requestedLotId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            LotEntity storedLot = new LotEntity();
+            storedLot.setId(requestedLotId);
+            storedLot.setOwnerId(UUID.randomUUID());
+
+            given(lotRepository.findById(requestedLotId)).willReturn(Optional.of(storedLot));
+
+            assertThatThrownBy(() -> service.cancelAuctionLot(requestedLotId, userId, UserStatus.ACTIVE))
+                    .isInstanceOf(OwnerCannotCancelException.class)
+                    .hasMessageContaining("Only the lot owner can cancel the auction.");
+
+            verifyNoMoreInteractions(lotRepository);
+            verifyNoInteractions(lotMapper);
+        }
+
+        @Test
+        void shouldThrowException_WhenLotIsInactive() {
+            UUID requestedLotId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            LotEntity storedLot = new LotEntity();
+            storedLot.setId(requestedLotId);
+            storedLot.setOwnerId(userId);
+            storedLot.setStatus(LotStatus.FINISHED);
+
+            given(lotRepository.findById(requestedLotId)).willReturn(Optional.of(storedLot));
+
+            assertThatThrownBy(() -> service.cancelAuctionLot(requestedLotId, userId, UserStatus.ACTIVE))
+                    .isInstanceOf(LotNotActiveException.class)
+                    .hasMessageContaining("Lot " + requestedLotId + " is not active. " +
+                            "Current status: " + storedLot.getStatus());
+
+            verifyNoMoreInteractions(lotRepository);
+            verifyNoInteractions(lotMapper);
         }
     }
 }

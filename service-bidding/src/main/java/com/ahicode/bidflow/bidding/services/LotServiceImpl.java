@@ -1,16 +1,10 @@
 package com.ahicode.bidflow.bidding.services;
 
-import com.ahicode.bidflow.bidding.dtos.BidRequest;
-import com.ahicode.bidflow.bidding.dtos.BidResponse;
-import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
-import com.ahicode.bidflow.bidding.dtos.LotResponse;
+import com.ahicode.bidflow.bidding.dtos.*;
 import com.ahicode.bidflow.bidding.entities.BidEntity;
 import com.ahicode.bidflow.bidding.entities.LotEntity;
 import com.ahicode.bidflow.bidding.enums.LotStatus;
-import com.ahicode.bidflow.bidding.exceptions.BidTooLowException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotActiveException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotFoundException;
-import com.ahicode.bidflow.bidding.exceptions.OwnerCannotBidException;
+import com.ahicode.bidflow.bidding.exceptions.*;
 import com.ahicode.bidflow.bidding.mappers.BidMapper;
 import com.ahicode.bidflow.bidding.mappers.LotMapper;
 import com.ahicode.bidflow.bidding.repositories.BidRepository;
@@ -19,6 +13,8 @@ import com.ahicode.bidflow.common.enums.UserStatus;
 import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +45,54 @@ public class LotServiceImpl implements LotService {
         log.info("Lot has been saved with ID: {}", savedLot.getId());
 
         // TODO - add putting lot information in Redis cache
+
+        return lotMapper.toResponse(savedLot);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<LotListItemResponse> getLotsByStatus(LotStatus lotStatus, Pageable pageable) {
+        Page<LotEntity> lots = lotStatus != null
+                ? lotRepository.findByStatus(lotStatus, pageable)
+                : lotRepository.findByStatus(LotStatus.ACTIVE, pageable);
+
+        return lots.map(lotMapper::toListItemResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LotResponse getLotDetails(UUID lotId) {
+        // TODO - add cache-aside
+        LotEntity lotEntity = lotRepository.findById(lotId)
+                .orElseThrow(() -> new LotNotFoundException(lotId));
+
+        return lotMapper.toResponse(lotEntity);
+    }
+
+    @Override
+    @Transactional
+    public LotResponse cancelAuctionLot(UUID lotId, UUID userId, UserStatus userStatus) {
+        if (userStatus != UserStatus.ACTIVE) {
+            throw new UserNotAllowedException();
+        }
+
+        // TODO - add cache-aside
+        LotEntity lotEntity = lotRepository.findById(lotId)
+                .orElseThrow(() -> new LotNotFoundException(lotId));
+
+        if (!lotEntity.getOwnerId().equals(userId)) {
+            throw new OwnerCannotCancelException();
+        }
+
+        if (lotEntity.getStatus() != LotStatus.ACTIVE) {
+            throw new LotNotActiveException(lotId, lotEntity.getStatus());
+        }
+
+        lotEntity.setStatus(LotStatus.CANCELLED);
+
+        LotEntity savedLot = lotRepository.save(lotEntity);
+
+        // TODO - invalidate cache
 
         return lotMapper.toResponse(savedLot);
     }

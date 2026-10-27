@@ -1,9 +1,6 @@
 package com.ahicode.bidflow.bidding.controllers;
 
-import com.ahicode.bidflow.bidding.exceptions.BidTooLowException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotActiveException;
-import com.ahicode.bidflow.bidding.exceptions.LotNotFoundException;
-import com.ahicode.bidflow.bidding.exceptions.OwnerCannotBidException;
+import com.ahicode.bidflow.bidding.exceptions.*;
 import com.ahicode.bidflow.common.dtos.ErrorResponse;
 import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +27,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
     }
 
-    @ExceptionHandler({UserNotAllowedException.class, OwnerCannotBidException.class})
+    @ExceptionHandler({
+            UserNotAllowedException.class,
+            OwnerCannotBidException.class,
+            OwnerCannotCancelException.class
+    })
     public ResponseEntity<ErrorResponse> handleForbidden(
             RuntimeException ex, HttpServletRequest request
     ) {
