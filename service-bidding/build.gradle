@@ -4,6 +4,7 @@ version = '1.0-SNAPSHOT'
 dependencies {
     // ========== Spring Boot ==========
     implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.cache
     implementation libs.spring.boot.starter.data.jpa
     implementation libs.spring.boot.starter.data.redis
     implementation libs.spring.boot.starter.validation
@@ -26,6 +27,9 @@ dependencies {
     // ========== MapStruct ==========
     implementation libs.mapstruct
     annotationProcessor libs.mapstruct.processor
+
+    // ========== Jackson ==========
+    implementation libs.jackson.datatype.jsr310
 
     // ========== Testing ==========
     testImplementation libs.testcontainers.redis

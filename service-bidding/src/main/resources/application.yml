@@ -42,6 +42,10 @@ spring:
   cache:
     type: redis
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 eureka:
   client:
     register-with-eureka: true

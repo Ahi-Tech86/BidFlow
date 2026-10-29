@@ -13,6 +13,9 @@ import com.ahicode.bidflow.common.enums.UserStatus;
 import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional
+    @CachePut(value = "lots", key = "#result.lotId")
     public LotResponse createLot(CreateLotRequest request, UUID userId, UserStatus userStatus) {
         if (userStatus != UserStatus.ACTIVE) {
             throw new UserNotAllowedException();
@@ -43,8 +47,6 @@ public class LotServiceImpl implements LotService {
 
         LotEntity savedLot = lotRepository.save(entity);
         log.info("Lot has been saved with ID: {}", savedLot.getId());
-
-        // TODO - add putting lot information in Redis cache
 
         return lotMapper.toResponse(savedLot);
     }
@@ -61,8 +63,8 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable (value = "lots", key = "#lotId")
     public LotResponse getLotDetails(UUID lotId) {
-        // TODO - add cache-aside
         LotEntity lotEntity = lotRepository.findById(lotId)
                 .orElseThrow(() -> new LotNotFoundException(lotId));
 
@@ -71,12 +73,12 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "lots", key = "#lotId")
     public LotResponse cancelAuctionLot(UUID lotId, UUID userId, UserStatus userStatus) {
         if (userStatus != UserStatus.ACTIVE) {
             throw new UserNotAllowedException();
         }
 
-        // TODO - add cache-aside
         LotEntity lotEntity = lotRepository.findById(lotId)
                 .orElseThrow(() -> new LotNotFoundException(lotId));
 
@@ -89,10 +91,7 @@ public class LotServiceImpl implements LotService {
         }
 
         lotEntity.setStatus(LotStatus.CANCELLED);
-
         LotEntity savedLot = lotRepository.save(lotEntity);
-
-        // TODO - invalidate cache
 
         return lotMapper.toResponse(savedLot);
     }
