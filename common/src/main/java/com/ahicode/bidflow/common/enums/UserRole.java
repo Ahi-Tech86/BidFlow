@@ -1,4 +1,4 @@
-package com.ahicode.bidflow.auth.enums;
+package com.ahicode.bidflow.common.enums;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

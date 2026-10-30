@@ -3,6 +3,7 @@ package com.ahicode.bidflow.auth.controllers;
 import com.ahicode.bidflow.auth.dtos.*;
 import com.ahicode.bidflow.auth.exceptions.InvalidTokenException;
 import com.ahicode.bidflow.auth.services.AuthService;
+import com.ahicode.bidflow.common.dtos.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

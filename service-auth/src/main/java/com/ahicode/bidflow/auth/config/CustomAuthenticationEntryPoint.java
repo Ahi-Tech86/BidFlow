@@ -1,6 +1,6 @@
 package com.ahicode.bidflow.auth.config;
 
-import com.ahicode.bidflow.auth.dtos.ErrorResponse;
+import com.ahicode.bidflow.common.dtos.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

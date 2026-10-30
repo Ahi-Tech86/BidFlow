@@ -72,6 +72,9 @@ mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.re
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
 shedlock-provider = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc", version.ref = "shedlock" }
 
+# Jackson Datatype Dependencies
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
+
 # Junit Dependencies
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }
