@@ -56,7 +56,7 @@ public class LotController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    public ResponseEntity<Page<LotListItemResponse>> getLotsByStatus(
+    public ResponseEntity<PageResponse<LotListItemResponse>> getLotsByStatus(
             @Parameter(description = "Filter by lot status. If omitted, defaults to ACTIVE")
             @RequestParam(value = "lotStatus", required = false) LotStatus lotStatus,
 

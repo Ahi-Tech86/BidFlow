@@ -53,12 +53,12 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<LotListItemResponse> getLotsByStatus(LotStatus lotStatus, Pageable pageable) {
+    public PageResponse<LotListItemResponse> getLotsByStatus(LotStatus lotStatus, Pageable pageable) {
         Page<LotEntity> lots = lotStatus != null
                 ? lotRepository.findByStatus(lotStatus, pageable)
                 : lotRepository.findByStatus(LotStatus.ACTIVE, pageable);
 
-        return lots.map(lotMapper::toListItemResponse);
+        return PageResponse.from(lots.map(lotMapper::toListItemResponse));
     }
 
     @Override

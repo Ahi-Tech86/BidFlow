@@ -311,12 +311,12 @@ public class LotServiceTest {
             given(lotRepository.findByStatus(eq(requestedStatus), eq(pageable))).willReturn(entityPage);
             given(lotMapper.toListItemResponse(eq(mockEntity))).willReturn(mockResponse);
 
-            Page<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
+            PageResponse<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
 
             assertThat(result).isNotNull();
-            assertThat(result.getContent()).hasSize(1);
-            assertThat(result.getContent().getFirst()).isEqualTo(mockResponse);
-            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().getFirst()).isEqualTo(mockResponse);
+            assertThat(result.totalElements()).isEqualTo(1);
 
             verify(lotRepository).findByStatus(requestedStatus, pageable);
             verify(lotMapper).toListItemResponse(mockEntity);
@@ -334,12 +334,12 @@ public class LotServiceTest {
             given(lotRepository.findByStatus(eq(LotStatus.ACTIVE), eq(pageable))).willReturn(entityPage);
             given(lotMapper.toListItemResponse(eq(mockEntity))).willReturn(mockResponse);
 
-            Page<LotListItemResponse> result = service.getLotsByStatus(null, pageable);
+            PageResponse<LotListItemResponse> result = service.getLotsByStatus(null, pageable);
 
             assertThat(result).isNotNull();
-            assertThat(result.getContent()).hasSize(1);
-            assertThat(result.getContent().getFirst()).isEqualTo(mockResponse);
-            assertThat(result.getTotalElements()).isEqualTo(1);
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().getFirst()).isEqualTo(mockResponse);
+            assertThat(result.totalElements()).isEqualTo(1);
 
             verify(lotRepository).findByStatus(LotStatus.ACTIVE, pageable);
             verify(lotMapper).toListItemResponse(mockEntity);
@@ -354,11 +354,11 @@ public class LotServiceTest {
 
             given(lotRepository.findByStatus(eq(requestedStatus), eq(pageable))).willReturn(emptyEntityPage);
 
-            Page<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
+            PageResponse<LotListItemResponse> result = service.getLotsByStatus(requestedStatus, pageable);
 
             assertThat(result).isNotNull();
-            assertThat(result.getContent()).isEmpty();
-            assertThat(result.getTotalElements()).isZero();
+            assertThat(result.content()).isEmpty();
+            assertThat(result.totalElements()).isZero();
 
             verify(lotRepository).findByStatus(requestedStatus, pageable);
             verify(lotMapper, never()).toListItemResponse(any());

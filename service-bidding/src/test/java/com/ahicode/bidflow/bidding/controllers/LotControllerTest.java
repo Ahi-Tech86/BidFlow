@@ -195,8 +195,9 @@ class LotControllerTest {
         void shouldReturnPaginatedLots_WhenNoParamsProvided() throws Exception {
             PageRequest expectedPageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<LotListItemResponse> mockPage = new PageImpl<>(List.of(createMockListItem()), expectedPageable, 1);
+            PageResponse<LotListItemResponse> mockPageResponse = PageResponse.from(mockPage);
 
-            given(lotService.getLotsByStatus(null, expectedPageable)).willReturn(mockPage);
+            given(lotService.getLotsByStatus(null, expectedPageable)).willReturn(mockPageResponse);
 
             mockMvc.perform(get("/api/v1/lots")
                             .contentType(MediaType.APPLICATION_JSON))
@@ -210,8 +211,9 @@ class LotControllerTest {
         void shouldReturnPaginatedLots_WhenStatusAndCustomPaginationProvided() throws Exception {
             PageRequest expectedPageable = PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<LotListItemResponse> mockPage = new PageImpl<>(List.of(), expectedPageable, 0);
+            PageResponse<LotListItemResponse> mockPageResponse = PageResponse.from(mockPage);
 
-            given(lotService.getLotsByStatus(LotStatus.CANCELLED, expectedPageable)).willReturn(mockPage);
+            given(lotService.getLotsByStatus(LotStatus.CANCELLED, expectedPageable)).willReturn(mockPageResponse);
 
             mockMvc.perform(get("/api/v1/lots")
                             .param("lotStatus", "CANCELLED")
