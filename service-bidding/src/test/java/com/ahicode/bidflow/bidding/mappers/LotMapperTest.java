@@ -1,8 +1,6 @@
 package com.ahicode.bidflow.bidding.mappers;
 
-import com.ahicode.bidflow.bidding.dtos.CreateLotRequest;
-import com.ahicode.bidflow.bidding.dtos.LotListItemResponse;
-import com.ahicode.bidflow.bidding.dtos.LotResponse;
+import com.ahicode.bidflow.bidding.dtos.*;
 import com.ahicode.bidflow.bidding.entities.LotEntity;
 import com.ahicode.bidflow.bidding.enums.LotStatus;
 import org.junit.jupiter.api.Nested;
@@ -51,9 +49,10 @@ public class LotMapperTest {
             assertThat(entity)
                     .extracting(
                             LotEntity::getId, LotEntity::getOwnerId, LotEntity::getStatus,
-                            LotEntity::getCreatedAt, LotEntity::getUpdatedAt
+                            LotEntity::getCreatedAt, LotEntity::getUpdatedAt, LotEntity::getCurrentMaxBid,
+                            LotEntity::getHighestBidderId
                     )
-                    .containsExactly(null, null, LotStatus.ACTIVE, null, null);
+                    .containsExactly(null, null, LotStatus.ACTIVE, null, null, null, null);
         }
     }
 
@@ -72,6 +71,8 @@ public class LotMapperTest {
                     BigDecimal.valueOf(100_000.00),
                     LotStatus.ACTIVE,
                     BigDecimal.valueOf(50.00),
+                    BigDecimal.valueOf(100_000.00),
+                    null,
                     now.plusDays(15),
                     now.minusDays(2),
                     now.minusDays(2)
@@ -109,6 +110,8 @@ public class LotMapperTest {
                     BigDecimal.valueOf(100_000.00),
                     LotStatus.ACTIVE,
                     BigDecimal.valueOf(50.00),
+                    BigDecimal.valueOf(100_000.00),
+                    null,
                     now.plusDays(15),
                     now.minusDays(2),
                     now.minusDays(2)
@@ -124,6 +127,43 @@ public class LotMapperTest {
                     .containsExactly(
                             lotId, "Ferrari F40", BigDecimal.valueOf(100_000.00)
                     );
+        }
+    }
+
+    @Nested
+    class toDetailsResponse {
+        @Test
+        void shouldMapLotResponseAndBidInfoToLotDetailsResponse() {
+            UUID lotId = UUID.randomUUID();
+            UUID ownerId = UUID.randomUUID();
+            UUID highestBidderId = UUID.randomUUID();
+            ZonedDateTime now = ZonedDateTime.now();
+
+            LotResponse lotResponse = new LotResponse(
+                    lotId, ownerId, "Ferrari F40", "Classic sport car",
+                    BigDecimal.valueOf(200_000), BigDecimal.valueOf(1_000),
+                    LotStatus.ACTIVE, now.plusDays(15), now, now
+            );
+
+            CurrentBidInfo bidInfo = new CurrentBidInfo(
+                    BigDecimal.valueOf(205_000),
+                    highestBidderId
+            );
+
+            LotMapper mapper = Mappers.getMapper(LotMapper.class);
+
+            LotDetailsResponse result = mapper.toDetailsResponse(lotResponse, bidInfo);
+
+            assertThat(result).isNotNull();
+            assertThat(result.lotId()).isEqualTo(lotId);
+            assertThat(result.ownerId()).isEqualTo(ownerId);
+            assertThat(result.name()).isEqualTo("Ferrari F40");
+
+            assertThat(result.currentMaxBid()).isEqualByComparingTo(BigDecimal.valueOf(205_000));
+            assertThat(result.highestBidderId()).isEqualTo(highestBidderId);
+
+            assertThat(result.startPrice()).isEqualByComparingTo(BigDecimal.valueOf(200_000));
+            assertThat(result.status()).isEqualTo(LotStatus.ACTIVE);
         }
     }
 }

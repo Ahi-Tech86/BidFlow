@@ -42,6 +42,8 @@ public class LotRepositoryTest {
                 BigDecimal.valueOf(100_000.00),
                 LotStatus.ACTIVE,
                 BigDecimal.valueOf(500.00),
+                BigDecimal.valueOf(100_000.00),
+                null,
                 now.plusDays(14),
                 now.minusDays(2),
                 now.minusDays(2)
@@ -144,6 +146,8 @@ public class LotRepositoryTest {
                 BigDecimal.valueOf(100_000.00),
                 status,
                 BigDecimal.valueOf(400.00),
+                BigDecimal.valueOf(100_000.00),
+                null,
                 now.plusDays(4),
                 now.minusMinutes(1),
                 now.minusMinutes(1)

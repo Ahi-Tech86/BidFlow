@@ -59,6 +59,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
+    @ExceptionHandler(CacheSerializationException.class)
+    public ResponseEntity<ErrorResponse> handleCacheSerializationException(
+            CacheSerializationException ex, HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                "An expected error occurred. Please try again later", request
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleInternalException(
             Exception ex, HttpServletRequest request

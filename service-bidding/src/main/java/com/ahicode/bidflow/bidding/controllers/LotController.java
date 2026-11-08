@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -87,6 +86,11 @@ public class LotController {
                     responseCode = "403",
                     description = "Forbidden: The user account is inactive, blocked, or lacks permission to create a lot.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal Server Error: Cache serialization failure.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
     public ResponseEntity<LotResponse> createLot(
@@ -123,7 +127,7 @@ public class LotController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Ok: Successfully retrieved the lot details",
-                    content = @Content(schema = @Schema(implementation = LotResponse.class))
+                    content = @Content(schema = @Schema(implementation = LotDetailsResponse.class))
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -131,7 +135,7 @@ public class LotController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    public ResponseEntity<LotResponse> getLotDetails(
+    public ResponseEntity<LotDetailsResponse> getLotDetails(
             @Parameter(description = "Unique identifier of the auction lot", required = true)
             @PathVariable("lotId") UUID lotId
     ) {
@@ -205,7 +209,7 @@ public class LotController {
                     responseCode = "400",
                     description = "Bad Request: " +
                             "1) Invalid input data (e.g., non-positive bid value)" +
-                            "2) Attemptint to bid on an inactive, closed, or cancelled lot." +
+                            "2) Attempting to bid on an inactive, closed, or cancelled lot." +
                             "3) Bid value is too low (less than starting price OR less than the current highest bid + minimum bid step).",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             ),

@@ -39,6 +39,8 @@ public class BidRepositoryTest {
                 BigDecimal.valueOf(100_000.00),
                 LotStatus.ACTIVE,
                 BigDecimal.valueOf(500.00),
+                BigDecimal.valueOf(100_000.00),
+                null,
                 now.plusDays(14),
                 now.minusDays(2),
                 now.minusDays(2)

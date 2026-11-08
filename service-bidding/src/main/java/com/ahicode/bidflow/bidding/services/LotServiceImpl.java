@@ -11,23 +11,30 @@ import com.ahicode.bidflow.bidding.repositories.BidRepository;
 import com.ahicode.bidflow.bidding.repositories.LotRepository;
 import com.ahicode.bidflow.common.enums.UserStatus;
 import com.ahicode.bidflow.common.exceptions.UserNotAllowedException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LotServiceImpl implements LotService {
+
+    private static final String LOT_INFO_KEY_PREFIX = "lots:";
+    private static final String BID_KEY_PREFIX = "lot:bids:";
+
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper redisObjectMapper;
 
     private final LotRepository lotRepository;
     private final BidRepository bidRepository;
@@ -36,7 +43,6 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional
-    @CachePut(value = "lots", key = "#result.lotId")
     public LotResponse createLot(CreateLotRequest request, UUID userId, UserStatus userStatus) {
         if (userStatus != UserStatus.ACTIVE) {
             throw new UserNotAllowedException();
@@ -44,11 +50,29 @@ public class LotServiceImpl implements LotService {
 
         LotEntity entity = lotMapper.toEntity(request);
         entity.setOwnerId(userId);
+        entity.setCurrentMaxBid(entity.getStartPrice());
 
         LotEntity savedLot = lotRepository.save(entity);
         log.info("Lot has been saved with ID: {}", savedLot.getId());
 
-        return lotMapper.toResponse(savedLot);
+        LotResponse response = lotMapper.toResponse(savedLot);
+        CurrentBidInfo initialBidInfo = new CurrentBidInfo(savedLot.getStartPrice(), null);
+
+        try {
+            String lotJson = redisObjectMapper.writeValueAsString(response);
+            String bidJson = redisObjectMapper.writeValueAsString(initialBidInfo);
+
+            stringRedisTemplate.opsForValue()
+                    .set(LOT_INFO_KEY_PREFIX + savedLot.getId(), lotJson, 1, TimeUnit.HOURS);
+            stringRedisTemplate.opsForValue()
+                    .set(BID_KEY_PREFIX + savedLot.getId(), bidJson, 30, TimeUnit.MINUTES);
+
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize lot data for Redis. Lot ID: {}", savedLot.getId());
+            throw new CacheSerializationException("Internal server error during cache serialization", e);
+        }
+
+        return response;
     }
 
     @Override
@@ -63,17 +87,64 @@ public class LotServiceImpl implements LotService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable (value = "lots", key = "#lotId")
-    public LotResponse getLotDetails(UUID lotId) {
-        LotEntity lotEntity = lotRepository.findById(lotId)
-                .orElseThrow(() -> new LotNotFoundException(lotId));
+    public LotDetailsResponse getLotDetails(UUID lotId) {
+        String lotInfoKey = LOT_INFO_KEY_PREFIX + lotId;
+        String bidInfoKey = BID_KEY_PREFIX + lotId;
 
-        return lotMapper.toResponse(lotEntity);
+        try {
+            String lotJson = stringRedisTemplate.opsForValue().get(lotInfoKey);
+            String bidJson = stringRedisTemplate.opsForValue().get(bidInfoKey);
+
+            LotResponse lotInfo = null;
+            CurrentBidInfo bidInfo = null;
+
+            if (lotJson != null) {
+                lotInfo = redisObjectMapper.readValue(lotJson, LotResponse.class);
+            }
+            if (bidJson != null) {
+                bidInfo = redisObjectMapper.readValue(bidJson, CurrentBidInfo.class);
+            }
+
+            if (lotInfo == null || bidInfo == null) {
+                LotEntity storedLot = lotRepository.findById(lotId)
+                        .orElseThrow(() -> new LotNotFoundException(lotId));
+
+                if (lotInfo == null) {
+                    lotInfo = lotMapper.toResponse(storedLot);
+                    stringRedisTemplate.opsForValue()
+                            .set(lotInfoKey, redisObjectMapper.writeValueAsString(lotInfo), 1, TimeUnit.HOURS);
+                }
+
+                if (bidInfo == null) {
+                    bidInfo = new CurrentBidInfo(storedLot.getCurrentMaxBid(), storedLot.getHighestBidderId());
+                    stringRedisTemplate.opsForValue()
+                            .set(bidInfoKey, redisObjectMapper.writeValueAsString(bidInfo), 30, TimeUnit.MINUTES);
+                }
+            }
+
+            return lotMapper.toDetailsResponse(lotInfo, bidInfo);
+
+        }  catch (JsonProcessingException e) {
+            log.error("Corrupted JSON in Redis for lotId: {}. Evicting keys and falling back to DB.", lotId, e);
+
+            // 1. Evicting broken cache
+            stringRedisTemplate.delete(lotInfoKey);
+            stringRedisTemplate.delete(bidInfoKey);
+
+            // 2. Getting entity from DB
+            LotEntity storedEntity = lotRepository.findById(lotId)
+                    .orElseThrow(() -> new LotNotFoundException(lotId));
+
+            // 3. Return response to client
+            return lotMapper.toDetailsResponse(
+                    lotMapper.toResponse(storedEntity),
+                    new CurrentBidInfo(storedEntity.getCurrentMaxBid(), storedEntity.getHighestBidderId())
+            );
+        }
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "lots", key = "#lotId")
     public LotResponse cancelAuctionLot(UUID lotId, UUID userId, UserStatus userStatus) {
         if (userStatus != UserStatus.ACTIVE) {
             throw new UserNotAllowedException();
@@ -92,6 +163,10 @@ public class LotServiceImpl implements LotService {
 
         lotEntity.setStatus(LotStatus.CANCELLED);
         LotEntity savedLot = lotRepository.save(lotEntity);
+
+        // Invalidate cache
+        stringRedisTemplate.delete(LOT_INFO_KEY_PREFIX + lotId);
+        stringRedisTemplate.delete(BID_KEY_PREFIX + lotId);
 
         return lotMapper.toResponse(savedLot);
     }

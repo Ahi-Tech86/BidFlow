@@ -109,6 +109,26 @@ class LotControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden());
         }
+
+        @Test
+        void shouldReturnInternalServerError_WhenCacheSerializationFailure() throws Exception {
+            CreateLotRequest request = new CreateLotRequest(
+                    "Vintage Watch",
+                    "Description",
+                    BigDecimal.valueOf(1000.00),
+                    BigDecimal.valueOf(10.00),
+                    now.plusDays(10)
+            );
+            given(lotService.createLot(any(CreateLotRequest.class), any(), any()))
+                    .willThrow(CacheSerializationException.class);
+
+            mockMvc.perform(post("/api/v1/lots")
+                            .header("X-User-Id", USER_ID)
+                            .header("X-User-Status", "BLOCKED")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isInternalServerError());
+        }
     }
 
     @Nested
@@ -231,7 +251,7 @@ class LotControllerTest {
     class GetLotDetails {
         @Test
         void shouldReturnLotDetails_WhenLotExists() throws Exception {
-            LotResponse mockResponse = createMockLotResponse();
+            LotDetailsResponse mockResponse = createMockLotDetailsResponse();
 
             given(lotService.getLotDetails(LOT_ID)).willReturn(mockResponse);
 
@@ -339,6 +359,23 @@ class LotControllerTest {
                 BigDecimal.valueOf(1000.00),
                 LotStatus.ACTIVE,
                 now.plusDays(10),
+                now.minusMinutes(1)
+        );
+    }
+
+    private LotDetailsResponse createMockLotDetailsResponse() {
+        return new LotDetailsResponse(
+                LOT_ID,
+                USER_ID,
+                "Vintage Watch",
+                "Description",
+                BigDecimal.valueOf(1000.00),
+                BigDecimal.valueOf(10.00),
+                BigDecimal.valueOf(1250.00),
+                UUID.randomUUID(),
+                LotStatus.ACTIVE,
+                now.plusDays(10),
+                now.minusMinutes(1),
                 now.minusMinutes(1)
         );
     }
