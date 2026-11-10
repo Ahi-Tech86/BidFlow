@@ -81,4 +81,58 @@ public class BidRepositoryTest {
             assertThat(expectedMaxBidValue).isEqualTo(BigDecimal.ZERO);
         }
     }
+
+    @Nested
+    class CountByLotId {
+        private final ZonedDateTime now = ZonedDateTime.now();
+
+        @Test
+        void shouldReturnCorrectBidCount_WhenLotHasMultipleBids() {
+            LotEntity secondLot = new LotEntity(
+                    null,
+                    UUID.randomUUID(),
+                    "Casio Watch",
+                    "Classic watch",
+                    BigDecimal.valueOf(5_000.00),
+                    LotStatus.ACTIVE,
+                    BigDecimal.valueOf(50.00),
+                    BigDecimal.valueOf(5_000.00),
+                    null,
+                    now.plusDays(14),
+                    now.minusDays(5),
+                    now.minusDays(5)
+            );
+            entityManager.persistAndFlush(secondLot);
+            entityManager.clear();
+
+            for (int i = 1; i < 6; i++) {
+                BidEntity bid = new BidEntity();
+                bid.setId(null);
+                bid.setUserId(UUID.randomUUID());
+                bid.setCreatedAt(now.minusDays(i));
+
+                if (i == 5) {
+                    bid.setLotId(secondLot.getId());
+                    bid.setBidValue(secondLot.getStartPrice().add(BigDecimal.valueOf(100 * i)));
+                } else {
+                    bid.setLotId(savedLot.getId());
+                    bid.setBidValue(savedLot.getStartPrice().add(BigDecimal.valueOf(1000 * i)));
+                }
+
+                entityManager.persistAndFlush(bid);
+            }
+            entityManager.clear();
+
+            Long numberOfBids = repository.countByLotId(savedLot.getId());
+
+            assertThat(numberOfBids).isEqualTo(4);
+        }
+
+        @Test
+        void shouldReturnZero_WhenLotHasNoBids() {
+            Long numOfBid = repository.countByLotId(savedLot.getId());
+
+            assertThat(numOfBid).isEqualTo(0L);
+        }
+    }
 }

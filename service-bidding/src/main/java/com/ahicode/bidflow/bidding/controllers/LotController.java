@@ -28,7 +28,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/lots")
-@Tag(name = "Bidding", description = "Endpoints for managing auction lots and placing bids")
+@Tag(name = "Bidding", description = "Endpoints for managing auction lots")
 public class LotController {
 
     private static final String GATEWAY_HEADER_DESC = "Resolved by API Gateway from the validated JWT. " +
@@ -191,66 +191,5 @@ public class LotController {
             @PathVariable("lotId") UUID lotId
     ) {
         return ResponseEntity.ok(lotService.cancelAuctionLot(lotId, userId, userStatus));
-    }
-
-    @PostMapping("/{lotId}/bids")
-    @Operation(
-            summary = "Place a bid on a lot",
-            description = "Places a new bid on existing auction lot. The bid must be meet the minimum requirements " +
-                    "(start price or current max bid + minimum step)."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Created: Bid placed successfully",
-                    content = @Content(schema = @Schema(implementation = BidResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Bad Request: " +
-                            "1) Invalid input data (e.g., non-positive bid value)" +
-                            "2) Attempting to bid on an inactive, closed, or cancelled lot." +
-                            "3) Bid value is too low (less than starting price OR less than the current highest bid + minimum bid step).",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Forbidden: " +
-                            "1) The user account is inactive or blocked (based on X-User-Status)" +
-                            "2) The owner of the lot is attempting to place a bid on their own lot.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Not Found: The lot with the specified ID does not exist.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-            )
-    })
-    public ResponseEntity<BidResponse> makeBid(
-            @Parameter(
-                    description = GATEWAY_HEADER_DESC,
-                    required = true,
-                    example = "123e4567-e89b-12d3-a456-426614174000"
-            )
-            @RequestHeader("X-User-Id") UUID userId,
-
-            @Parameter(
-                    description = GATEWAY_HEADER_DESC,
-                    schema = @Schema(implementation = UserStatus.class),
-                    required = true,
-                    example = "ACTIVE"
-            )
-            @RequestHeader("X-User-Status") UserStatus userStatus,
-
-            @Parameter(description = "Unique identifier of the lot to bid on", required = true)
-            @PathVariable("lotId") UUID lotId,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "The bid details including the proposed bid value",
-                    required = true
-            )
-            @RequestBody @Valid BidRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(lotService.makeBid(request, lotId, userId, userStatus));
     }
 }

@@ -12,4 +12,6 @@ public interface BidRepository extends JpaRepository<BidEntity, UUID> {
 
     @Query("SELECT COALESCE(MAX(b.bidValue), 0) FROM BidEntity b WHERE b.lotId = :lotId")
     BigDecimal findMaxBidForLotByLotId(@Param("lotId") UUID lotId);
+
+    Long countByLotId(UUID lotId);
 }

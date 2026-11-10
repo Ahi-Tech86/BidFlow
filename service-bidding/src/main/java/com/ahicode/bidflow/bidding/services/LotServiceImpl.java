@@ -170,48 +170,4 @@ public class LotServiceImpl implements LotService {
 
         return lotMapper.toResponse(savedLot);
     }
-
-    @Override
-    @Transactional
-    public BidResponse makeBid(BidRequest request, UUID lotId, UUID userId, UserStatus userStatus) {
-        if (userStatus != UserStatus.ACTIVE) {
-            throw new UserNotAllowedException();
-        }
-
-        LotEntity lot = lotRepository.findById(lotId)
-                .orElseThrow(() -> new LotNotFoundException(lotId));
-
-        if (lot.getOwnerId().equals(userId)) {
-            throw new OwnerCannotBidException();
-        }
-
-        if (lot.getStatus() != LotStatus.ACTIVE) {
-            throw new LotNotActiveException(lotId, lot.getStatus());
-        }
-
-        // 1. The bid should be greater than start price
-        // request.bidValue() > lot.getStartPrice() <=> startPrice.compareTo(bidValue) < 0
-        if (lot.getStartPrice().compareTo(request.bidValue()) >= 0) {
-            throw new BidTooLowException("Bid must be greater than start price");
-        }
-
-        // 2. The bid should be more or equals than current max bid + minimal bid step
-        BigDecimal maxCurrentBid = bidRepository.findMaxBidForLotByLotId(lotId);
-        BigDecimal minAllowedBid = maxCurrentBid.add(lot.getMinBidStep());
-
-        // minAllowedBid > request.bidValue()  <=>  minAllowedBid.compareTo(request.bidValue()) > 0
-        if (minAllowedBid.compareTo(request.bidValue()) > 0) {
-            throw new BidTooLowException("Bid increment must be at least " + lot.getMinBidStep());
-        }
-
-        BidEntity entity = bidMapper.toEntity(request);
-        entity.setLotId(lotId);
-        entity.setUserId(userId);
-
-        BidEntity savedBid = bidRepository.save(entity);
-
-        // TODO - add Redis cache update and event publish in Kafka
-
-        return bidMapper.toResponse(savedBid);
-    }
 }

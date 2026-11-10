@@ -12,5 +12,4 @@ public interface LotService {
     LotDetailsResponse getLotDetails(UUID lotId);
     PageResponse<LotListItemResponse> getLotsByStatus(LotStatus lotStatus, Pageable pageable);
     LotResponse cancelAuctionLot(UUID lotId, UUID userId, UserStatus userStatus);
-    BidResponse makeBid(BidRequest request, UUID lotId, UUID userId, UserStatus userStatus);
 }
