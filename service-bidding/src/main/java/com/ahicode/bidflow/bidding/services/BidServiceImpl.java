@@ -1,9 +1,6 @@
 package com.ahicode.bidflow.bidding.services;
 
-import com.ahicode.bidflow.bidding.dtos.BidPlacedEvent;
-import com.ahicode.bidflow.bidding.dtos.BidRequest;
-import com.ahicode.bidflow.bidding.dtos.BidResponse;
-import com.ahicode.bidflow.bidding.dtos.CurrentBidInfo;
+import com.ahicode.bidflow.bidding.dtos.*;
 import com.ahicode.bidflow.bidding.entities.BidEntity;
 import com.ahicode.bidflow.bidding.entities.LotEntity;
 import com.ahicode.bidflow.bidding.enums.LotStatus;
@@ -18,6 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,6 +79,13 @@ public class BidServiceImpl implements BidService {
         eventPublisher.publishEvent(new BidPlacedEvent(lotId, request.bidValue(), userId));
 
         return bidMapper.toResponse(savedBid);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BidHistoryResponse> getBidsHistory(UUID lotId, Pageable pageable) {
+        Page<BidEntity> bidEntityPage = bidRepository.getAllByLotId(lotId, pageable);
+        return PageResponse.from(bidEntityPage.map(bidMapper::toHistoryResponse));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

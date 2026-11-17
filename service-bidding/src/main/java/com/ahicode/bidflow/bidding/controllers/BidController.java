@@ -1,9 +1,10 @@
 package com.ahicode.bidflow.bidding.controllers;
 
+import com.ahicode.bidflow.bidding.dtos.BidHistoryResponse;
 import com.ahicode.bidflow.bidding.dtos.BidRequest;
 import com.ahicode.bidflow.bidding.dtos.BidResponse;
+import com.ahicode.bidflow.bidding.dtos.PageResponse;
 import com.ahicode.bidflow.bidding.services.BidService;
-import com.ahicode.bidflow.bidding.services.LotService;
 import com.ahicode.bidflow.common.dtos.ErrorResponse;
 import com.ahicode.bidflow.common.enums.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -93,5 +95,33 @@ public class BidController {
             @RequestBody @Valid BidRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.placeBid(request, lotId, userId, userStatus));
+    }
+
+    @GetMapping("/{lotId}/bids")
+    @Operation(
+            summary = "Get bid history for a lot",
+            description = "Retrieves the paginated history of all bids placed on specific auction lot." +
+                    "Bids are typically sorted by creation time in descending order (newest first)."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "OK: Bid history retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = PageResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request: Invalid lot ID format or pagination parameters.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
+    public ResponseEntity<PageResponse<BidHistoryResponse>> getBidsHistory(
+            @Parameter(description = "Unique identifier of the lot", required = true)
+            @PathVariable("lotId") UUID lotId,
+
+            @Parameter(description = "Pagination parameters (page, size, sort)")
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(service.getBidsHistory(lotId, pageable));
     }
 }
