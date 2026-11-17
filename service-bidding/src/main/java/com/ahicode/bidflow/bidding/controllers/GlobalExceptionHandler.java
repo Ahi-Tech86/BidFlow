@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -20,7 +21,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({BidTooLowException.class, LotNotActiveException.class})
+    @ExceptionHandler({BidTooLowException.class, LotNotActiveException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(
             RuntimeException ex, HttpServletRequest request
     ) {
@@ -57,6 +58,16 @@ public class GlobalExceptionHandler {
         });
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+    }
+
+    @ExceptionHandler(CacheSerializationException.class)
+    public ResponseEntity<ErrorResponse> handleCacheSerializationException(
+            CacheSerializationException ex, HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                "An expected error occurred. Please try again later", request
+        );
     }
 
     @ExceptionHandler(Exception.class)

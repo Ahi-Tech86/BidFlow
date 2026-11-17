@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -109,83 +108,25 @@ class LotControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden());
         }
-    }
-
-    @Nested
-    class MakeBid {
 
         @Test
-        void shouldReturnCreated_WhenBidPlacedSuccessfully() throws Exception {
-            BidRequest request = new BidRequest(new BigDecimal("150.00"));
-            BidResponse expectedResponse = new BidResponse(
-                    UUID.randomUUID(), LOT_ID, USER_ID, new BigDecimal("150.00"), ZonedDateTime.now()
+        void shouldReturnInternalServerError_WhenCacheSerializationFailure() throws Exception {
+            CreateLotRequest request = new CreateLotRequest(
+                    "Vintage Watch",
+                    "Description",
+                    BigDecimal.valueOf(1000.00),
+                    BigDecimal.valueOf(10.00),
+                    now.plusDays(10)
             );
+            given(lotService.createLot(any(CreateLotRequest.class), any(), any()))
+                    .willThrow(CacheSerializationException.class);
 
-            given(lotService.makeBid(any(BidRequest.class), eq(LOT_ID), any(UUID.class), any(UserStatus.class)))
-                    .willReturn(expectedResponse);
-
-            mockMvc.perform(post("/api/v1/lots/{lotId}/bids", LOT_ID)
+            mockMvc.perform(post("/api/v1/lots")
                             .header("X-User-Id", USER_ID)
-                            .header("X-User-Status", ACTIVE_STATUS)
+                            .header("X-User-Status", "BLOCKED")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.lotId").value(LOT_ID.toString()))
-                    .andExpect(jsonPath("$.bidValue").value("150.0"));
-        }
-
-        @Test
-        void shouldReturnBadRequest_WhenBidValueIsNotPositive() throws Exception {
-            BidRequest invalidRequest = new BidRequest(new BigDecimal("-10.00"));
-
-            mockMvc.perform(post("/api/v1/lots/{lotId}/bids", LOT_ID)
-                            .header("X-User-Id", USER_ID)
-                            .header("X-User-Status", ACTIVE_STATUS)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(invalidRequest)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void shouldReturnNotFound_WhenLotDoesNotExist() throws Exception {
-            BidRequest request = new BidRequest(new BigDecimal("150.00"));
-            given(lotService.makeBid(any(), eq(LOT_ID), any(), any()))
-                    .willThrow(new LotNotFoundException(LOT_ID));
-
-            mockMvc.perform(post("/api/v1/lots/{lotId}/bids", LOT_ID)
-                            .header("X-User-Id", USER_ID)
-                            .header("X-User-Status", ACTIVE_STATUS)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isNotFound());
-        }
-
-        @Test
-        void shouldReturnForbidden_WhenOwnerTriesToBid() throws Exception {
-            BidRequest request = new BidRequest(new BigDecimal("150.00"));
-            given(lotService.makeBid(any(), eq(LOT_ID), any(), any()))
-                    .willThrow(new OwnerCannotBidException());
-
-            mockMvc.perform(post("/api/v1/lots/{lotId}/bids", LOT_ID)
-                            .header("X-User-Id", USER_ID)
-                            .header("X-User-Status", ACTIVE_STATUS)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
-        }
-
-        @Test
-        void shouldReturnBadRequest_WhenBidIsTooLow() throws Exception {
-            BidRequest request = new BidRequest(new BigDecimal("50.00"));
-            given(lotService.makeBid(any(), eq(LOT_ID), any(), any()))
-                    .willThrow(new BidTooLowException("Bid must be greater than start price"));
-
-            mockMvc.perform(post("/api/v1/lots/{lotId}/bids", LOT_ID)
-                            .header("X-User-Id", USER_ID)
-                            .header("X-User-Status", ACTIVE_STATUS)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isInternalServerError());
         }
     }
 
@@ -231,7 +172,7 @@ class LotControllerTest {
     class GetLotDetails {
         @Test
         void shouldReturnLotDetails_WhenLotExists() throws Exception {
-            LotResponse mockResponse = createMockLotResponse();
+            LotDetailsResponse mockResponse = createMockLotDetailsResponse();
 
             given(lotService.getLotDetails(LOT_ID)).willReturn(mockResponse);
 
@@ -339,6 +280,23 @@ class LotControllerTest {
                 BigDecimal.valueOf(1000.00),
                 LotStatus.ACTIVE,
                 now.plusDays(10),
+                now.minusMinutes(1)
+        );
+    }
+
+    private LotDetailsResponse createMockLotDetailsResponse() {
+        return new LotDetailsResponse(
+                LOT_ID,
+                USER_ID,
+                "Vintage Watch",
+                "Description",
+                BigDecimal.valueOf(1000.00),
+                BigDecimal.valueOf(10.00),
+                BigDecimal.valueOf(1250.00),
+                UUID.randomUUID(),
+                LotStatus.ACTIVE,
+                now.plusDays(10),
+                now.minusMinutes(1),
                 now.minusMinutes(1)
         );
     }

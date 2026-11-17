@@ -1,5 +1,6 @@
 package com.ahicode.bidflow.bidding.mappers;
 
+import com.ahicode.bidflow.bidding.dtos.BidHistoryResponse;
 import com.ahicode.bidflow.bidding.dtos.BidRequest;
 import com.ahicode.bidflow.bidding.dtos.BidResponse;
 import com.ahicode.bidflow.bidding.entities.BidEntity;
@@ -17,4 +18,8 @@ public interface BidMapper {
     BidEntity toEntity(BidRequest request);
 
     BidResponse toResponse(BidEntity entity);
+
+    @Mapping(target = "bidId", source = "id")
+    @Mapping(target = "bidderId", source = "userId")
+    BidHistoryResponse toHistoryResponse(BidEntity entity);
 }

@@ -43,6 +43,11 @@ public class LotEntity {
     @Column(nullable = false, updatable = false)
     private BigDecimal minBidStep;
 
+    @Column(nullable = false)
+    private BigDecimal currentMaxBid;
+
+    private UUID highestBidderId;
+
     @Column(nullable = false, updatable = false)
     private ZonedDateTime finishedAt;
 

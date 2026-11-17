@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Builder
-@Schema(description = "Response payload for a lot")
+@Schema(description = "Response payload for lot creation or modification")
 public record LotResponse(
         @Schema(
                 description = "Unique lot identifier (UUID)",

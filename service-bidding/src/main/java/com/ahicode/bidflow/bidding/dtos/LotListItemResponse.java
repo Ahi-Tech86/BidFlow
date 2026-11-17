@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-@Schema(description = "Response payload for lot list")
+@Schema(description = "Response payload for a single item in the lot list")
 public record LotListItemResponse(
         @Schema(
                 description = "Unique lot identifier (UUID)",

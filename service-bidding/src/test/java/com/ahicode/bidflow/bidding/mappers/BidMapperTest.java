@@ -1,5 +1,6 @@
 package com.ahicode.bidflow.bidding.mappers;
 
+import com.ahicode.bidflow.bidding.dtos.BidHistoryResponse;
 import com.ahicode.bidflow.bidding.dtos.BidRequest;
 import com.ahicode.bidflow.bidding.dtos.BidResponse;
 import com.ahicode.bidflow.bidding.entities.BidEntity;
@@ -63,6 +64,36 @@ public class BidMapperTest {
                     )
                     .containsExactly(
                             bidId, lotId, userId, BigDecimal.valueOf(100_000.00), now.minusMinutes(1)
+                    );
+        }
+    }
+
+    @Nested
+    class ToHistoryResponse {
+        @Test
+        void shouldMapOnlyAllowedFields_FromBidEntity() {
+            ZonedDateTime now = ZonedDateTime.now();
+            UUID bidId = UUID.randomUUID();
+            UUID lotId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            BidEntity entity = new BidEntity(
+                    bidId,
+                    lotId,
+                    userId,
+                    BigDecimal.valueOf(100_000.00),
+                    now.minusMinutes(1)
+            );
+
+            BidHistoryResponse response = mapper.toHistoryResponse(entity);
+
+            assertThat(response)
+                    .isNotNull()
+                    .extracting(
+                            BidHistoryResponse::bidId, BidHistoryResponse::bidderId,
+                            BidHistoryResponse::bidValue, BidHistoryResponse::createdAt
+                    )
+                    .containsExactly(
+                            bidId, userId, BigDecimal.valueOf(100_000.00), now.minusMinutes(1)
                     );
         }
     }
